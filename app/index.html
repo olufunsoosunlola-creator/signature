@@ -26,6 +26,15 @@ html{-webkit-text-size-adjust:100%}
 <script src="vendor/react.production.min.js"></script>
 <script src="vendor/react-dom.production.min.js"></script>
 <script src="storage.js"></script>
+<!-- The curriculum, the practice database, the SQL checker and the question generator. -->
+<script src="signature-data.js"></script>
+<script src="signature-requests.js"></script>
+<script src="signature-db.js"></script>
+<script src="vendor/sql-wasm.js"></script>
+<script src="signature-engine.js"></script>
+<script src="signature-gen.js"></script>
+<script src="signature-q1.js"></script>
+<script src="signature-q2.js"></script>
 <script src="./support.js"></script>
 <script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
@@ -36,8 +45,6 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 <helmet>
 <link rel="stylesheet" href="_ds/classical-20f9543c-4b48-4898-9c80-1e2f739e756c/styles.css">
 <script src="_ds/classical-20f9543c-4b48-4898-9c80-1e2f739e756c/_ds_bundle.js"></script>
-<script src="signature-data.js"></script>
-<script src="signature-requests.js"></script>
 <style>
 body{margin:0;background:#d8cfc3;-webkit-font-smoothing:antialiased}
 a{color:#7d5411}a:hover{color:#6b1e1c}
@@ -71,7 +78,7 @@ textarea::placeholder{color:#9b8f81}
       <div style="font:400 26px/1.12 var(--font-heading);text-wrap:pretty;position:relative;">{{ home.sugTitle }}</div>
       <div style="font:400 14px/1.5 var(--font-body);color:#4a423b;">{{ home.sugSub }}</div>
       <div style="display:flex;gap:10px;padding:4px 0 16px;">
-        <button class="btn btn-primary" onClick="{{ home.startFocus }}" style="color:#7d5411;font-size:15px;white-space:nowrap;"><span>Revisit {{ home.sugTool }} · 4 requests</span></button>
+        <button class="btn btn-primary" onClick="{{ home.startFocus }}" style="color:#7d5411;font-size:15px;white-space:nowrap;"><span>{{ home.sugBtn }}</span></button>
       </div>
       <div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid #b2a493;margin:0 -18px;padding:8px 18px;font:400 9px/1 'DM Mono',monospace;letter-spacing:.22em;color:#5e554c;">
         <span>{{ home.sugCat }}</span><span style="white-space:nowrap;">{{ home.sugDay }}</span>
@@ -94,7 +101,7 @@ textarea::placeholder{color:#9b8f81}
     <div style="display:flex;flex-direction:column;gap:4px;">
       <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.32em;color:#5e554c;margin-bottom:8px;">OR START SOMETHING NEW</div>
       <sc-for list="{{ sittings }}" as="si" hint-placeholder-count="4">
-        <button onClick="{{ si.onClick }}" style="all:unset;cursor:pointer;display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px solid #c9bdae;" style-hover="padding-left:6px" style-active="background:rgba(182,130,53,.08)">
+        <button onClick="{{ si.onClick }}" style="all:unset;cursor:pointer;display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px solid #c9bdae;opacity:{{ si.op }};" style-hover="padding-left:6px" style-active="background:rgba(182,130,53,.08)">
           <span style="display:flex;flex-direction:column;gap:4px;"><span style="font:400 20px/1.2 var(--font-heading);">{{ si.title }}</span><span style="font:400 12.5px/1.35 var(--font-body);color:#5e554c;">{{ si.note }}</span></span>
           <span style="font:400 10.5px/1 'DM Mono',monospace;color:#5e554c;white-space:nowrap;">{{ si.sub }}</span>
         </button>
@@ -115,7 +122,7 @@ textarea::placeholder{color:#9b8f81}
         <div style="font:400 14px/1.6 var(--font-body);color:#4a423b;text-align:justify;">A manager sends a request in plain words. You choose the tools, write the query against CelestiaRetailLab, and we taste it together. Requests lean toward the cards you’re still learning, and earlier cards keep turning up so you choose instead of guess.</div>
         <div style="display:flex;flex-direction:column;">
           <sc-for list="{{ sittings }}" as="si" hint-placeholder-count="4">
-            <button onClick="{{ si.onClick }}" style="all:unset;cursor:pointer;display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:12px;padding:14px 0;border-bottom:1px solid #c9bdae;" style-hover="padding-left:6px">
+            <button onClick="{{ si.onClick }}" style="all:unset;cursor:pointer;display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:12px;padding:14px 0;border-bottom:1px solid #c9bdae;opacity:{{ si.op }};" style-hover="padding-left:6px">
               <span style="display:flex;flex-direction:column;gap:4px;"><span style="font:400 20px/1.2 var(--font-heading);">{{ si.title }}</span><span style="font:400 12.5px/1.35 var(--font-body);color:#5e554c;">{{ si.note }}</span></span>
               <span style="font:400 10.5px/1 'DM Mono',monospace;color:#5e554c;white-space:nowrap;">{{ si.sub }}</span>
             </button>
@@ -134,6 +141,47 @@ textarea::placeholder{color:#9b8f81}
           <button class="btn btn-secondary" onClick="{{ goHome }}" style="font-size:15px;">Back home</button>
           <button class="btn btn-primary" onClick="{{ oneMore }}" style="color:#7d5411;font-size:15px;">One more request</button>
         </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ p.isComplete }}">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px;padding-top:16px;">
+        <div style="background:#f5ecd2;border:1px solid #c9a464;padding:5px;width:100%;box-sizing:border-box;animation:sigRise .6s ease;">
+          <div style="border:1px solid rgba(182,130,53,.5);padding:26px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:12px;position:relative;overflow:hidden;">
+            <div style="position:absolute;right:-30px;top:-40px;width:150px;height:130px;border-radius:50%;background:radial-gradient(circle, rgba(214,176,96,.38), rgba(214,176,96,0) 68%);filter:blur(2px);"></div>
+            <div style="width:38px;height:38px;border-radius:50%;border:1px solid #b68235;display:grid;place-items:center;position:relative;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b68235" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+            <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.36em;color:#7d5411;">CARD COMPLETE</div>
+            <div style="font:300 34px/1.1 var(--font-heading);position:relative;">{{ p.done.name }}</div>
+            <div style="font:400 30px/1.15 'Nothing You Could Do',cursive;color:#6b1e1c;transform:rotate(-3deg);margin:2px 0;">{{ p.done.note }}</div>
+            <div style="font:400 10px/1.5 'DM Mono',monospace;color:#7d5411;letter-spacing:.06em;">{{ p.done.line }}</div>
+          </div>
+        </div>
+        <sc-if value="{{ p.done.hasPhase }}"><div style="font:400 19px/1.3 'Nothing You Could Do',cursive;color:#6b1e1c;transform:rotate(-1.5deg);">{{ p.done.phaseNote }}</div></sc-if>
+        <sc-if value="{{ p.done.hasNext }}">
+          <div style="width:100%;display:flex;flex-direction:column;gap:12px;animation:sigFade .6s ease .4s both;">
+            <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.32em;color:#5e554c;text-align:left;">NOW UNLOCKED</div>
+            <div style="width:86%;align-self:center;border:1px solid #b2a493;display:flex;flex-direction:column;text-align:left;position:relative;opacity:{{ p.done.cardOp }};transition:opacity 1.4s ease;">
+              <div style="position:absolute;top:10px;right:10px;opacity:{{ p.done.lockOp }};transition:opacity 1s ease;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b68235" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>
+              <div style="padding:13px 14px 12px;display:flex;flex-direction:column;gap:3px;">
+                <div style="font:600 21px/1.1 var(--font-heading);margin-bottom:4px;padding-right:18px;">{{ p.done.nextName }}</div>
+                <sc-for list="{{ p.done.nextIngr }}" as="ig"><div style="font:400 11px/1.45 'DM Mono',monospace;color:#3a332d;white-space:pre-wrap;">{{ ig }}</div></sc-for>
+                <div style="font:400 13px/1.5 var(--font-body);color:#4a423b;margin-top:8px;">{{ p.done.nextPlain }}</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid #b2a493;padding:7px 14px;">
+                <span style="font:400 8.5px/1.2 'DM Mono',monospace;letter-spacing:.2em;color:#4a423b;">{{ p.done.nextCat }}</span>
+                <span style="font:400 8.5px/1.2 'DM Mono',monospace;letter-spacing:.16em;color:#2a2420;white-space:nowrap;">{{ p.done.nextDay }}</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px;">
+              <button class="btn btn-secondary" onClick="{{ goHome }}" style="font-size:15px;">Back home</button>
+              <button class="btn btn-primary" onClick="{{ p.done.begin }}" style="color:#7d5411;font-size:15px;">{{ p.done.beginLabel }}</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ p.done.noNext }}">
+          <div style="font:400 19px/1.3 'Nothing You Could Do',cursive;color:#6b1e1c;transform:rotate(-2deg);">Practised again, and still yours.</div>
+          <button class="btn btn-secondary" onClick="{{ goHome }}" style="font-size:15px;">Back home</button>
+        </sc-if>
       </div>
     </sc-if>
 
@@ -248,6 +296,22 @@ textarea::placeholder{color:#9b8f81}
         <!-- step 2 -->
         <sc-if value="{{ p.step2 }}">
           <div style="display:flex;flex-direction:column;gap:14px;animation:sigFade .35s ease;">
+            <sc-if value="{{ p.hasHints }}">
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.28em;color:#5e554c;">YOUR HINTS SO FAR</div>
+                <sc-for list="{{ p.hints }}" as="hl">
+                <div style="border:1px solid #b2a493;padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;animation:sigFade .35s ease;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;"><span style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.32em;color:#6b1e1c;">{{ hl.title }}</span><span style="font:400 9.5px/1 'DM Mono',monospace;color:#b68235;">0{{ hl.n }}</span></div>
+                  <div style="display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:start;"><svg viewBox="0 0 34 56" fill="none" stroke="#6b1e1c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:48px;overflow:visible;"><path d="M26 7 C 8 6, 4 18, 14 24 C 24 30, 20 36, 10 34 C 2 32, 6 48, 24 49" style="stroke-dasharray:110;stroke-dashoffset:110;animation:sigDraw .9s ease forwards;"></path><path d="M18 45 L24 49 L18 53"></path></svg><div style="font:400 18px/1.35 'Nothing You Could Do',cursive;color:#6b1e1c;padding-top:4px;">{{ hl.text }}</div></div>
+                  <sc-if value="{{ hl.isTool }}">
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;"><sc-for list="{{ hl.chips }}" as="ch"><span style="font:400 11px/1.2 'DM Mono',monospace;padding:6px 9px;border:1px solid #b68235;color:#5a3b0a;background:#f5ecd2;border-radius:2px;">{{ ch }}</span></sc-for></div>
+                    <sc-for list="{{ hl.tables }}" as="tt"><div style="display:flex;flex-direction:column;gap:3px;padding-top:4px;"><span style="font:400 12px/1.3 'DM Mono',monospace;color:#2a2420;">{{ tt.name }}</span><span style="font:400 11px/1.45 'DM Mono',monospace;color:#5e554c;">{{ tt.cols }}</span></div></sc-for>
+                  </sc-if>
+                  <sc-if value="{{ hl.isShape }}"><div style="padding:10px 12px;border-left:1px solid #b2a493;font:400 12px/1.65 'DM Mono',monospace;color:#2a2420;white-space:pre-wrap;word-break:break-word;"><sc-for list="{{ hl.segs }}" as="sg"><sc-if value="{{ sg.blank }}"><span style="background:linear-gradient(transparent 55%, rgba(214,176,96,.6) 55%);color:#5a3b0a;">{{ sg.t }}</span></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></div></sc-if>
+                </div>
+                </sc-for>
+              </div>
+            </sc-if>
             <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
               <span style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.2em;color:#5e554c;margin-right:4px;">YOUR TOOLS</span>
               <sc-for list="{{ p.pickedNames }}" as="pn"><span style="font:400 10.5px/1 'DM Mono',monospace;padding:5px 8px;border:1px solid #b68235;color:#5a3b0a;border-radius:2px;white-space:nowrap;">{{ pn }}</span></sc-for>
@@ -288,6 +352,54 @@ textarea::placeholder{color:#9b8f81}
                   </div>
                   <div style="font:400 10px/1 'DM Mono',monospace;color:#7d5411;letter-spacing:.06em;">{{ r.lead }} · {{ r.masteryWord }}</div>
                 </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ r.hasToolNote }}"><div style="font:400 14px/1.55 var(--font-body);color:#4a423b;border-left:1px solid #c9a464;padding:2px 0 2px 12px;">{{ r.toolNote }}</div></sc-if>
+            <sc-if value="{{ r.hasDoneNote }}"><div style="font:400 19px/1.3 'Nothing You Could Do',cursive;color:#6b1e1c;text-align:center;transform:rotate(-1.5deg);">{{ r.doneNote }}</div></sc-if>
+
+            <sc-if value="{{ r.isSlip }}">
+              <div style="border:1px solid #6b1e1c;padding:16px 18px;display:flex;flex-direction:column;gap:12px;animation:sigRise .5s ease;">
+                <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.32em;color:#6b1e1c;">{{ r.slipTitle }}</div>
+                <div style="font:400 22px/1.2 var(--font-heading);">So close. Just one small slip.</div>
+                <div style="font:400 14px/1.55 var(--font-body);">{{ r.slipMsg }}</div>
+                <sc-if value="{{ r.hasSlipAt }}"><div style="padding:10px 12px;border-left:1px solid #b2a493;font:400 11.5px/1.6 'DM Mono',monospace;color:#5e554c;white-space:pre-wrap;word-break:break-word;"><sc-for list="{{ r.slipSegs }}" as="sg"><sc-if value="{{ sg.hit }}"><span style="background:rgba(214,176,96,.45);color:#6b1e1c;box-shadow:inset 0 -1.5px 0 #6b1e1c;">{{ sg.t }}</span></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></div></sc-if>
+                <div style="font:400 17px/1.3 'Nothing You Could Do',cursive;color:#6b1e1c;transform:rotate(-1.5deg);transform-origin:left;">Tidy this one spot and taste again.</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                  <sc-if value="{{ r.slipPantry }}"><button onClick="{{ peekPantry }}" style="all:unset;cursor:pointer;font:400 16px/1 'Nothing You Could Do',cursive;color:#6b1e1c;border-bottom:1px solid rgba(107,30,28,.4);padding-bottom:2px;">peek in the Pantry ↑</button></sc-if>
+                  <button onClick="{{ stuck }}" style="all:unset;cursor:pointer;font:400 13px/1 var(--font-body);color:#5e554c;border-bottom:1px solid #b2a493;padding-bottom:2px;">I’m stuck, show me a hint</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ r.isHint }}">
+              <div style="display:flex;flex-direction:column;gap:12px;animation:sigRise .5s ease;">
+                <div style="border:1px solid #b2a493;padding:18px;display:flex;flex-direction:column;gap:8px;">
+                  <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.32em;color:#7d5411;">NOT QUITE YET · LAYER {{ r.layerNo }} OF 4</div>
+                  <div style="font:400 24px/1.15 var(--font-heading);">Let’s peel back one layer.</div>
+                  <div style="font:400 14px/1.55 var(--font-body);color:#4a423b;">{{ r.what }}</div>
+                  <sc-if value="{{ r.hasExtra }}"><div style="font:400 14px/1.55 var(--font-body);color:#4a423b;">{{ r.extra }}</div></sc-if>
+                </div>
+                <sc-for list="{{ r.layerList }}" as="hl">
+                <div style="border:1px solid #b2a493;padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;animation:sigFade .35s ease;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;"><span style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.32em;color:#6b1e1c;">{{ hl.title }}</span><span style="font:400 9.5px/1 'DM Mono',monospace;color:#b68235;">0{{ hl.n }}</span></div>
+                  <div style="display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:start;"><svg viewBox="0 0 34 56" fill="none" stroke="#6b1e1c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:48px;overflow:visible;"><path d="M26 7 C 8 6, 4 18, 14 24 C 24 30, 20 36, 10 34 C 2 32, 6 48, 24 49" style="stroke-dasharray:110;stroke-dashoffset:110;animation:sigDraw .9s ease forwards;"></path><path d="M18 45 L24 49 L18 53"></path></svg><div style="font:400 18px/1.35 'Nothing You Could Do',cursive;color:#6b1e1c;padding-top:4px;">{{ hl.text }}</div></div>
+                  <sc-if value="{{ hl.isTool }}">
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;"><sc-for list="{{ hl.chips }}" as="ch"><span style="font:400 11px/1.2 'DM Mono',monospace;padding:6px 9px;border:1px solid #b68235;color:#5a3b0a;background:#f5ecd2;border-radius:2px;">{{ ch }}</span></sc-for></div>
+                    <sc-for list="{{ hl.tables }}" as="tt"><div style="display:flex;flex-direction:column;gap:3px;padding-top:4px;"><span style="font:400 12px/1.3 'DM Mono',monospace;color:#2a2420;">{{ tt.name }}</span><span style="font:400 11px/1.45 'DM Mono',monospace;color:#5e554c;">{{ tt.cols }}</span></div></sc-for>
+                  </sc-if>
+                  <sc-if value="{{ hl.isShape }}"><div style="padding:10px 12px;border-left:1px solid #b2a493;font:400 12px/1.65 'DM Mono',monospace;color:#2a2420;white-space:pre-wrap;word-break:break-word;"><sc-for list="{{ hl.segs }}" as="sg"><sc-if value="{{ sg.blank }}"><span style="background:linear-gradient(transparent 55%, rgba(214,176,96,.6) 55%);color:#5a3b0a;">{{ sg.t }}</span></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></div></sc-if>
+                </div>
+                </sc-for>
+                <div style="font:400 17px/1.3 'Nothing You Could Do',cursive;color:#6b1e1c;transform:rotate(-1.5deg);transform-origin:left;">Every try teaches something. Have another go.</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ r.isTools }}">
+              <div style="border:1px solid {{ r.toolsBorder }};padding:18px;display:flex;flex-direction:column;gap:10px;animation:sigRise .5s ease;">
+                <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.32em;color:#7d5411;">YOUR TOOLS</div>
+                <div style="font:400 24px/1.15 var(--font-heading);">{{ r.toolsHead }}</div>
+                <div style="font:400 14px/1.55 var(--font-body);color:#4a423b;">{{ r.toolsMsg }}</div>
               </div>
             </sc-if>
 
@@ -344,6 +456,7 @@ textarea::placeholder{color:#9b8f81}
               </div>
             </sc-if>
 
+            <sc-if value="{{ r.showSteps }}">
             <div style="display:flex;flex-direction:column;border:1px solid #c9bdae;">
               <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid #c9bdae;">
                 <span style="font:400 9.5px/1.3 'DM Mono',monospace;letter-spacing:.24em;color:#4a423b;">{{ r.howTitle }}</span>
@@ -359,6 +472,7 @@ textarea::placeholder{color:#9b8f81}
                 </div>
               </sc-for>
             </div>
+            </sc-if>
 
             <sc-if value="{{ r.hasYours }}">
               <div style="display:flex;flex-direction:column;gap:6px;">
@@ -369,7 +483,7 @@ textarea::placeholder{color:#9b8f81}
 
             <div style="display:flex;gap:10px;">
               <button class="btn btn-secondary" onClick="{{ endSession }}" style="flex:1;font-size:15px;padding:12px;">Stop here</button>
-              <button class="btn btn-primary" onClick="{{ nextReq }}" style="flex:1.4;color:#7d5411;font-size:15px;padding:12px;">{{ r.nextLabel }}</button>
+              <button class="btn btn-primary" onClick="{{ r.primary }}" style="flex:1.4;color:#7d5411;font-size:15px;padding:12px;">{{ r.primaryLabel }}</button>
             </div>
           </div>
         </sc-if>
@@ -393,9 +507,12 @@ textarea::placeholder{color:#9b8f81}
     <div style="font:400 13px/1.5 var(--font-body);color:#4a423b;">{{ menuPhase }}</div>
     <div style="display:flex;flex-direction:column;gap:26px;">
       <sc-for list="{{ menuCards }}" as="c" hint-placeholder-count="4">
-        <div onClick="{{ c.onClick }}" style="cursor:pointer;width:86%;align-self:{{ c.align }};border:1px solid #b2a493;display:flex;flex-direction:column;transition:background .2s;background:{{ c.bg }};" style-hover="background:rgba(250,246,238,.4)">
-          <div style="padding:13px 14px 12px;display:flex;flex-direction:column;gap:3px;">
-            <div style="font:600 21px/1.1 var(--font-heading);margin-bottom:4px;text-wrap:pretty;">{{ c.name }}</div>
+        <div onClick="{{ c.onClick }}" style="cursor:pointer;width:86%;align-self:{{ c.align }};border:1px solid #b2a493;display:flex;flex-direction:column;transition:background .2s, opacity .6s;background:{{ c.bg }};position:relative;" style-hover="background:rgba(250,246,238,.4)">
+          <sc-if value="{{ c.locked }}"><div style="position:absolute;top:11px;right:11px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b68235" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div></sc-if>
+          <div style="padding:13px 14px 12px;display:flex;flex-direction:column;gap:3px;opacity:{{ c.op }};">
+            <div style="font:600 21px/1.1 var(--font-heading);margin-bottom:4px;text-wrap:pretty;padding-right:18px;">{{ c.name }}</div>
+            <sc-if value="{{ c.locked }}"><div style="font:400 15px/1.25 'Nothing You Could Do',cursive;color:#6b1e1c;margin:-2px 0 6px;">{{ c.lockNote }}</div></sc-if>
+            <sc-if value="{{ c.isNow }}"><div style="font:400 15px/1.25 'Nothing You Could Do',cursive;color:#7d5411;margin:-2px 0 6px;">{{ c.nowNote }}</div></sc-if>
             <sc-for list="{{ c.ingr }}" as="ig"><div style="font:400 11px/1.45 'DM Mono',monospace;color:#3a332d;white-space:pre-wrap;">{{ ig }}</div></sc-for>
             <div style="display:flex;flex-direction:column;gap:5px;margin-top:16px;">
               <sc-for list="{{ c.sliders }}" as="sl">
@@ -415,12 +532,12 @@ textarea::placeholder{color:#9b8f81}
                 <div style="font:400 17px/1.35 'Nothing You Could Do',cursive;color:#6b1e1c;">{{ c.analogy }}</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <button class="btn btn-secondary" onClick="{{ c.lesson }}" style="font-size:13px;">Read the lesson</button>
-                  <button class="btn btn-primary" onClick="{{ c.practice }}" style="font-size:13px;color:#7d5411;">Practice this</button>
+                  <sc-if value="{{ c.canPractice }}"><button class="btn btn-primary" onClick="{{ c.practice }}" style="font-size:13px;color:#7d5411;">{{ c.practiceLabel }}</button></sc-if>
                 </div>
               </div>
             </sc-if>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid #b2a493;padding:7px 14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid #b2a493;padding:7px 14px;opacity:{{ c.op }};">
             <span style="font:400 8.5px/1.2 'DM Mono',monospace;letter-spacing:.2em;color:#4a423b;">{{ c.cat }}</span>
             <span style="font:400 8.5px/1.2 'DM Mono',monospace;letter-spacing:.16em;color:#2a2420;white-space:nowrap;">{{ c.phaseDay }}</span>
           </div>
@@ -611,7 +728,7 @@ textarea::placeholder{color:#9b8f81}
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="font:400 9.5px/1 'DM Mono',monospace;letter-spacing:.34em;color:#5e554c;">FIFTY DAYS · SIX PHASES</div>
           <div style="font:300 40px/1.02 var(--font-heading);">Lessons</div>
-          <div style="font:400 14px/1.55 var(--font-body);color:#4a423b;margin-top:6px;">Follow them in order, or open any card you’re curious about. Opening a lesson adds it to your mixed reviews.</div>
+          <div style="font:400 14px/1.55 var(--font-body);color:#4a423b;margin-top:6px;">Read any lesson whenever you’re curious. Practice opens one card at a time: finish a card’s requests and the next one unlocks.</div>
         </div>
         <sc-for list="{{ les.phases }}" as="ph" hint-placeholder-count="2">
           <div style="display:flex;flex-direction:column;">
@@ -620,7 +737,7 @@ textarea::placeholder{color:#9b8f81}
               <span style="font:400 9.5px/1 'DM Mono',monospace;color:#5e554c;white-space:nowrap;">{{ ph.days }}</span>
             </div>
             <sc-for list="{{ ph.items }}" as="li">
-              <button onClick="{{ li.onClick }}" style="all:unset;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:baseline;padding:13px 0;border-bottom:1px solid #c9bdae;" style-hover="background:rgba(182,130,53,.05)">
+              <button onClick="{{ li.onClick }}" style="all:unset;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:baseline;padding:13px 0;border-bottom:1px solid #c9bdae;opacity:{{ li.op }};" style-hover="background:rgba(182,130,53,.05)">
                 <span style="font:400 9.5px/1.3 'DM Mono',monospace;color:#7d5411;">{{ li.day }}</span>
                 <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                   <span style="font:400 19px/1.15 var(--font-heading);">{{ li.name }}</span>
@@ -657,16 +774,24 @@ textarea::placeholder{color:#9b8f81}
           <div style="font:400 9px/1 'DM Mono',monospace;letter-spacing:.3em;color:#5e554c;margin-bottom:6px;">INGREDIENTS</div>
           <sc-for list="{{ les.ingr }}" as="ig"><div style="font:400 12px/1.5 'DM Mono',monospace;white-space:pre-wrap;">{{ ig }}</div></sc-for>
         </div>
+        <sc-if value="{{ les.canPractice }}">
         <div style="display:flex;flex-direction:column;border:1px solid #c9bdae;">
-          <div style="padding:12px 14px;border-bottom:1px solid #c9bdae;font:400 9px/1 'DM Mono',monospace;letter-spacing:.3em;color:#5e554c;">PRACTICE REQUESTS · THREE LEVELS</div>
+          <div style="padding:12px 14px;border-bottom:1px solid #c9bdae;font:400 9px/1 'DM Mono',monospace;letter-spacing:.3em;color:#5e554c;">{{ les.reqTitle }}</div>
           <sc-for list="{{ les.reqs }}" as="rq">
             <div style="display:grid;grid-template-columns:54px 1fr;gap:8px;padding:11px 14px;border-bottom:1px solid #ddd3c6;align-items:baseline;">
               <span style="font:400 9px/1.4 'DM Mono',monospace;color:#7d5411;letter-spacing:.1em;">{{ rq.lv }}</span>
-              <span style="font:italic 400 16px/1.3 var(--font-heading);">“{{ rq.t }}”</span>
+              <span style="font:italic 400 16px/1.3 var(--font-heading);">{{ rq.t }}</span>
             </div>
           </sc-for>
         </div>
-        <button class="btn btn-primary btn-block" onClick="{{ les.practice }}" style="color:#7d5411;font-size:16px;padding:12px;">Practice {{ les.name }} · 4 requests</button>
+        <button class="btn btn-primary btn-block" onClick="{{ les.practice }}" style="color:#7d5411;font-size:16px;padding:12px;">{{ les.practiceLabel }}</button>
+        </sc-if>
+        <sc-if value="{{ les.locked }}">
+          <div style="border:1px solid #b2a493;padding:16px;display:flex;gap:12px;align-items:flex-start;">
+            <div style="padding-top:3px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b68235" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>
+            <div style="font:400 17px/1.35 'Nothing You Could Do',cursive;color:#6b1e1c;">{{ les.lockNote }}</div>
+          </div>
+        </sc-if>
         <div style="display:flex;justify-content:space-between;gap:10px;">
           <button onClick="{{ les.prev }}" disabled="{{ les.noPrev }}" style="all:unset;cursor:pointer;font:400 13px/1.3 var(--font-heading);color:#4a423b;opacity:{{ les.prevOp }};" style-hover="color:#2a2420">← {{ les.prevName }}</button>
           <button onClick="{{ les.next }}" disabled="{{ les.noNext }}" style="all:unset;cursor:pointer;font:400 13px/1.3 var(--font-heading);color:#4a423b;text-align:right;opacity:{{ les.nextOp }};" style-hover="color:#2a2420">{{ les.nextName }} →</button>
@@ -762,34 +887,54 @@ textarea::placeholder{color:#9b8f81}
 <script type="text/x-dc" data-dc-script>
 const TOMATO = '#c4472e', OX = '#6b1e1c', MUTED = '#8a7d6f', INK = '#2a2420';
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
+const SLOT = ['', 'FIRST POUR', 'FIRST POUR', 'BLENDED', 'BLENDED', 'THE CHALLENGE'];
+// Plain-language names for the patterns the checker notices.
+const PAT = {
+  count: 'Brought back the wrong number of rows, so a filter or a join was a little off.', values: 'Had the right shape, but some values didn’t match what was asked.',
+  'fewer-cols': 'Left out a column the request asked for.', 'not-grouped': 'Put a column in SELECT that wasn’t grouped or totalled.', 'agg-where': 'Used a total (SUM, COUNT…) in WHERE instead of HAVING.',
+  'having-no-group': 'Used HAVING without a GROUP BY.', 'needs-table': 'Used a column from a table that wasn’t in the query yet.', 'eq-null': 'Wrote = NULL instead of IS NULL.',
+  'alias-order': 'Used a SELECT nickname in WHERE or HAVING, before SQL Server knows it.', column: 'Mistyped a column name.', keyword: 'Mistyped a keyword.', comma: 'Missed a comma between columns.',
+  schema: 'Left off the schema name, like sales. or crm.', table: 'Mistyped a table name.', 'extra-cols': 'Returned more columns than the request asked for.', order: 'Sorted in the wrong direction, or forgot ORDER BY.',
+  value: 'Mistyped a value inside quotes.', ambiguous: 'Left a shared column without its table’s nickname.', syntax: 'A small typing slip stopped the query from running.',
+  'missing-result': 'Forgot the final SELECT.', 'missing-object': 'Didn’t create the table or view the request asked for.', error: 'Wrote something SQL Server couldn’t run.'
+};
 
 function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 function lev(a, b) { const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i]); for (let j = 1; j <= n; j++) d[0][j] = j; for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; }
 
 class Component extends DCLogic {
-  state = { ready: false, store: null, screen: 'home', menuOpen: null, menuCat: 'ALL', lesson: null, path: false, pantryOpen: true, rowsOpen: {}, confirmReset: false, moveDot: false, restore: null, backupMsg: '' };
+  state = { ready: false, store: null, screen: 'home', menuOpen: null, menuCat: 'ALL', lesson: null, path: false, pantryOpen: true, rowsOpen: {}, confirmReset: false, moveDot: false, restore: null, backupMsg: '', reveal: false };
   scrollRef = React.createRef();
   taRef = React.createRef();
   fileRef = React.createRef();
+  _qc = {};
 
   componentDidMount() {
-    const go = () => (window.SIG && window.SIG.TOPICS && window.SIG.REQUESTS ? this.boot() : (this._t = setTimeout(go, 40)));
+    const S = window.SIG;
+    const go = () => (S && S.TOPICS && S.REQUESTS && S.Engine && S.GEN ? S.Engine.ready.then(() => this.boot()).catch(() => this.boot()) : (this._t = setTimeout(go, 40)));
     go();
   }
-  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._d); clearTimeout(this._m); }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._d); clearTimeout(this._m); clearTimeout(this._r); }
 
   boot() {
     const D = window.SIG;
     this.TM = {}; D.TOPICS.forEach((t, i) => { t.idx = i; this.TM[t.id] = t; });
     this.QM = {}; D.REQUESTS.forEach(q => { this.QM[q.id] = q; });
     this.PM = {}; D.PANTRY.forEach(t => { this.PM[t.name.toLowerCase()] = t; });
-    // Your real progress starts empty (no sample history).
     window.SigStore.load().then(st => {
-      if (!st) { st = { v: 2, seedV: D.SEED_V, attempts: [], opened: {}, session: null }; this.persist(st); }
-      st.opened = st.opened || {};
-      this.setState({ ready: true, store: st });
+      if (!st) st = { v: 3, attempts: [], opened: {}, session: null };
+      st = this.migrate(st); this.persist(st);
+      const active = st.session && !st.session.done && this.curItem(st);
+      this.setState({ ready: true, store: st, screen: active ? 'practice' : 'home' });
       window.SigStore.requestPersist();
     });
+  }
+  // Older saves (version 2) keep their attempts as history; progression starts at Day 1.
+  migrate(st) {
+    if (st.v === 2) { st.attempts.forEach(a => (a.legacy = true)); st.session = null; st.v = 3; }
+    st.opened = st.opened || {};
+    st.prog = st.prog || { done: {}, sets: {}, hints: {} };
+    return st;
   }
   persist(st) { window.SigStore.save(st); }
   flash(msg) { this.setState({ backupMsg: msg }); clearTimeout(this._m); this._m = setTimeout(() => this.setState({ backupMsg: '' }), 5000); }
@@ -798,11 +943,46 @@ class Component extends DCLogic {
     this.setState({ screen, path: false, confirmReset: false, ...(extra || {}) });
     const el = this.scrollRef.current; if (el) el.scrollTop = 0;
   }
+  top() { const el = this.scrollRef.current; if (el) el.scrollTo({ top: 0, behavior: 'smooth' }); }
   tool(id) { return this.TM[id]; }
   req(id) { return this.QM[id]; }
   nm(id) { const t = this.TM[id]; return t ? t.name : id; }
   say(id) { const t = this.TM[id]; return t ? t.say : id; }
   phaseDay(t) { return `PHASE ${t.ph} · DAY ${t.day}`; }
+
+  // ───── progression: one tool at a time, in program order
+  current(st) { return window.SIG.TOPICS.find(t => !st.prog.done[t.id]) || null; }
+  isDone(st, id) { return !!st.prog.done[id]; }
+  isOpen(st, id) { const c = this.current(st); return this.isDone(st, id) || (c && c.id === id); }
+  generated(id) { const t = this.tool(id); return !!(window.SIG.GEN.TPL[id] && t && t.ph <= 4); }
+  doneTools(st) { return window.SIG.TOPICS.filter(t => this.isDone(st, t.id)); }
+  hintsAvg(st, id) { const h = st.prog.hints[id]; return h && h.n ? h.sum / h.n : null; }
+
+  // ───── questions: generated (Phases 1–4) or fixed (Phases 5–6)
+  qOf(ref) {
+    if (!ref) return null;
+    const key = ref.legacy ? 'L:' + ref.legacy : ref.t + ':' + ref.s;
+    if (this._qc[key]) return this._qc[key];
+    const E = window.SIG.Engine; let Q;
+    if (ref.legacy) {
+      const q = this.req(ref.legacy); if (!q) return null;
+      const sol = q.steps.map(x => x.c).join('\n');
+      Q = { key: q.id, legacy: q, tool: q.topic, slot: q.lv, ask: q.request, clues: q.clues, why: q.clueWhy, need: q.need, ok: q.ok, alt: q.alt, distract: q.distract, whyNot: q.whyNot, steps: q.steps, sol, tables: q.tables, skeleton: E.skeleton(sol), nudge: null };
+    } else {
+      const g = window.SIG.GEN.rebuild(ref); if (!g) return null;
+      const made = (g.before || []).join('\n');
+      Q = { key, gen: g, tool: g.tool, slot: g.slot, ask: g.ask, clues: g.clues, why: g.why, need: g.need, ok: g.ok, alt: [], distract: g.distract || [], whyNot: {}, sol: g.sol,
+        steps: E.explain(g.sol, g.notes), tables: E.tablesIn(g.sol + '\n' + made + '\n' + (g.after || []).join('\n')), skeleton: g.skeleton || E.skeleton(g.sol), nudge: g.nudge, spec: window.SIG.GEN.spec(g) };
+    }
+    this._qc[key] = Q; return Q;
+  }
+  newItem(ref) { return { ref, cur: ref, h: 0, hmax: 0, tries: 0, sib: false, done: false, text: '', picked: [] }; }
+  makeSet(id) {
+    if (this.generated(id)) return window.SIG.GEN.makeSet(id).map(r => this.newItem(r));
+    return window.SIG.REQUESTS.filter(q => q.topic === id).sort((a, b) => a.lv - b.lv).map(q => this.newItem({ legacy: q.id }));
+  }
+  items(st) { const s = st.session; if (!s) return []; return s.kind === 'set' ? ((st.prog.sets[s.topic] || {}).qs || []) : (s.items || []); }
+  curItem(st) { const s = st.session; return s ? this.items(st)[s.i] : null; }
 
   variants(q) { return [q.need].concat(q.alt || []); }
   allowed(q, v) { return new Set(v.concat(q.ok || [], ['d02'])); }
@@ -873,121 +1053,176 @@ class Component extends DCLogic {
     return notes;
   }
 
-  grade(q, picked, text, skipped) {
-    const ok = this.toolsOk(q, picked);
-    const best = ok ? picked.filter(t => this.variants(q).some(v => v.includes(t))) : this.bestSet(q, picked);
-    const noText = skipped || !text.trim();
-    const failed = noText ? [] : q.checks.filter(c => { const hit = new RegExp(c.re, c.flags).test(text); return c.neg ? hit : !hit; }).map(c => c.k);
-    const pantry = noText ? [] : this.pantryCheck(text);
-    return { toolsOk: ok, best: best.length ? best : q.need, failed, pantry, queryOk: noText ? null : failed.length === 0 && pantry.length === 0, skipped: noText };
+  // Fixed requests (Phases 5–6) are still checked by their key parts.
+  legacyGrade(q, picked, text) {
+    const failed = q.checks.filter(c => { const hit = new RegExp(c.re, c.flags).test(text); return c.neg ? hit : !hit; });
+    const pantry = this.pantryCheck(text);
+    if (pantry.length) return { status: 'slip', key: 'table', msg: pantry[0], pantry: true, pantryNotes: pantry };
+    if (failed.length) return { status: 'wrong', key: 'legacy', why: `Your query is missing ${failed.length === 1 ? 'one piece' : 'a few pieces'}: ${failed.map(c => c.miss).join(' ')}`, missing: failed.map(c => c.miss), pat: failed[0].pat };
+    return { status: 'right' };
+  }
+  gradeQ(Q, picked, text, skip) {
+    const ok = this.toolsOk(Q, picked);
+    const best = ok ? picked.filter(t => this.variants(Q).some(v => v.includes(t))) : this.bestSet(Q, picked);
+    const base = { toolsOk: ok, best: best.length ? best : Q.need };
+    if (skip || !text.trim()) return Object.assign(base, { skipped: true, status: 'tools' });
+    const g = Q.legacy ? this.legacyGrade(Q.legacy, picked, text) : window.SIG.Engine.grade(text, Q.spec);
+    if (g.status === 'error') return Object.assign(base, { status: 'right', note: null });
+    let used = [];
+    try { used = [...window.SIG.Engine.detectTools(text)].filter(id => this.TM[id] && id !== 'd02'); } catch (e) {}
+    return Object.assign(base, g, { used });
   }
 
   stats(attempts) {
     const D = window.SIG, T = {}, pats = {}, conc = {};
     D.TOPICS.forEach(t => (T[t.id] = { m: 0.2, tries: 0, right: 0, wrong: 0, conf: {} }));
-    const addPat = (k, text) => { pats[k] = pats[k] || { text, count: 0 }; pats[k].count++; };
-    attempts.forEach(a => {
-      const q = this.req(a.qid); if (!q) return;
-      const best = a.toolsOk ? (a.picked.filter(t => this.variants(q).some(v => v.includes(t))).length ? a.picked.filter(t => this.variants(q).some(v => v.includes(t))) : q.need) : this.bestSet(q, a.picked);
-      const good = a.toolsOk && a.queryOk !== false;
-      best.forEach(t => {
-        const x = T[t]; if (!x) return; x.tries++;
-        if (good) { x.right++; x.m += (1 - x.m) * 0.35; }
-        else if (a.toolsOk) x.m += (1 - x.m) * 0.12;
-        else if (a.picked.includes(t)) x.m += (1 - x.m) * 0.06;
-        else { x.wrong++; x.m *= 0.7; }
+    const addPat = (k, text) => { if (!text) return; pats[k] = pats[k] || { text, count: 0 }; pats[k].count++; };
+    const confuse = (q, a, best) => {
+      const al = this.allowed(q, best);
+      const wp = a.picked.filter(t => !al.has(t)), mt = best.filter(t => !a.picked.includes(t));
+      mt.forEach(m => {
+        wp.forEach(w => { if (T[m]) T[m].conf[w] = (T[m].conf[w] || 0) + 1; addPat(w + '>' + m, D.CONFUSIONS[w + '>' + m] || `Reached for ${this.nm(w)} when the request needed ${this.nm(m)}.`); });
+        if (!wp.length) addPat('miss:' + m, `Left out ${this.nm(m)} when the request needed it as well.`);
       });
-      if (!best.includes(q.topic) && good && T[q.topic]) { T[q.topic].tries++; T[q.topic].right++; T[q.topic].m += (1 - T[q.topic].m) * 0.2; }
-      if (!a.toolsOk) {
-        const al = this.allowed(q, best);
-        const wp = a.picked.filter(t => !al.has(t)), mt = best.filter(t => !a.picked.includes(t));
-        mt.forEach(m => {
-          wp.forEach(w => { if (T[m]) T[m].conf[w] = (T[m].conf[w] || 0) + 1; addPat(w + '>' + m, D.CONFUSIONS[w + '>' + m] || `Reached for ${this.nm(w)} when the request needed ${this.nm(m)}.`); });
-          if (!wp.length) addPat('miss:' + m, `Left out ${this.nm(m)} when the request needed it as well.`);
-        });
-        if (!mt.length) wp.forEach(w => addPat('extra:' + w, `Added ${this.nm(w)} when the request didn’t need it.`));
+      if (!mt.length) wp.forEach(w => addPat('extra:' + w, `Added ${this.nm(w)} when the request didn’t need it.`));
+    };
+    attempts.forEach(a => {
+      if (a.legacy) {
+        const q = this.req(a.qid); if (!q) return;
+        const best = a.toolsOk ? q.need : this.bestSet(q, a.picked);
+        const good = a.toolsOk && a.queryOk !== false;
+        best.forEach(t => { const x = T[t]; if (!x) return; x.tries++; if (good) { x.right++; x.m += (1 - x.m) * 0.35; } else if (a.toolsOk) x.m += (1 - x.m) * 0.12; else { x.wrong++; x.m *= 0.7; } });
+        if (!a.toolsOk) confuse(q, a, best);
+        const c = (conc[this.tool(q.topic).ph] = conc[this.tool(q.topic).ph] || { right: 0, total: 0 }); c.total++; if (good) c.right++;
+        return;
       }
-      if (a.queryOk === false) {
-        const keys = a.failed || (a.seeded ? [q.checks[q.checks.length - 1].k] : []);
-        keys.forEach(k => { const c = q.checks.find(x => x.k === k); if (c) addPat('q:' + q.id + k, c.pat); });
-        if (a.pantry && a.pantry.length) addPat('pantry', 'Used a table or column name that isn’t in the Pantry.');
-      }
-      const ph = this.tool(q.need[0]) ? this.tool(q.topic).ph : 1;
-      const c = (conc[ph] = conc[ph] || { right: 0, total: 0 }); c.total++; if (good) c.right++;
+      const t = this.tool(a.tool); if (!t) return;
+      const x = T[a.tool]; x.tries++;
+      const good = a.status === 'right';
+      if (good) { x.right++; x.m += (1 - x.m) * Math.max(0.12, 0.35 - 0.06 * (a.h || 0)); }
+      else if (a.status === 'wrong') { x.wrong++; x.m *= 0.85; }
+      if (!a.toolsOk && a.need) confuse({ need: a.need, ok: a.ok || [], alt: [] }, a, a.need);
+      if (a.status !== 'right' && a.key && PAT[a.key]) addPat('k:' + a.key, PAT[a.key]);
+      if (a.status === 'wrong' && a.pat) addPat('p:' + a.pat, a.pat);
+      const c = (conc[t.ph] = conc[t.ph] || { right: 0, total: 0 }); c.total++; if (good) c.right++;
     });
     return { T, pats, conc };
   }
 
-  unlocked(st) {
-    const u = new Set(Object.keys(st.opened || {}));
-    st.attempts.forEach(a => { const q = this.req(a.qid); if (q) { u.add(q.topic); q.need.forEach(t => u.add(t)); } });
-    return u;
-  }
-  weight(q, S, recent) {
-    let w = 1; q.need.forEach(t => { const x = S.T[t]; if (x) w += (1 - x.m) * 2 + x.wrong * 0.8; });
-    if (recent.includes(q.id)) w *= 0.25;
-    return w;
-  }
-  pickWeighted(pool, n) {
-    const out = []; pool = pool.slice();
-    while (out.length < n && pool.length) {
+  // Mixed review: only finished tools, leaning toward the ones that needed hints.
+  mixedItems(n) {
+    const st = this.state.store, S = this.stats(st.attempts), done = this.doneTools(st);
+    if (!done.length) return [];
+    const pool = done.map(t => ({ id: t.id, w: 1 + (1 - S.T[t.id].m) * 2 + (this.hintsAvg(st, t.id) || 0) * 1.2 + S.T[t.id].wrong * 0.4 }));
+    const out = [];
+    for (let k = 0; k < n; k++) {
       const tot = pool.reduce((s, p) => s + p.w, 0); let r = Math.random() * tot, i = 0;
       for (; i < pool.length - 1; i++) { r -= pool[i].w; if (r <= 0) break; }
-      out.push(pool[i].q.id); pool.splice(i, 1);
+      const id = pool[i].id; pool[i].w *= 0.35;
+      if (this.generated(id)) out.push(this.newItem(window.SIG.GEN.review(id)));
+      else { const qs = window.SIG.REQUESTS.filter(q => q.topic === id); out.push(this.newItem({ legacy: qs[Math.floor(Math.random() * qs.length)].id })); }
     }
     return out;
   }
-  mixedQueue(n, exclude) {
-    const D = window.SIG, st = this.state.store, S = this.stats(st.attempts), u = this.unlocked(st);
-    const recent = st.attempts.slice(-6).map(a => a.qid);
-    let qs = D.REQUESTS.filter(q => (u.has(q.topic) || q.need.every(t => u.has(t))) && !(exclude || []).includes(q.id) && !(exclude || []).includes(q.topic));
-    if (qs.length < n) qs = qs.concat(D.REQUESTS.filter(q => this.tool(q.topic).ph === 1 && !qs.includes(q)));
-    return this.pickWeighted(qs.map(q => ({ q, w: this.weight(q, S, recent) })), n);
-  }
-  focusQueue(topic) {
-    const D = window.SIG;
-    const own = D.REQUESTS.filter(q => q.topic === topic).sort((a, b) => a.lv - b.lv).map(q => q.id);
-    const twist = this.mixedQueue(1, own.concat([topic]));
-    const at = 1 + Math.floor(Math.random() * own.length);
-    own.splice(at, 0, ...twist);
-    return own;
-  }
-  nextTopic(S) {
-    const D = window.SIG;
-    return D.TOPICS.find(t => S.T[t.id].m < 0.62) || D.TOPICS[0];
-  }
   start(kind, topic) {
-    const queue = kind === 'focus' ? this.focusQueue(topic) : this.mixedQueue(kind === 'long' ? 6 : kind === 'one' ? 1 : 3);
-    this.put(st => { if (topic) st.opened[topic] = true; st.session = { kind, focus: topic || null, queue, i: 0, step: 1, picked: [], text: '', log: [], started: Date.now() }; return st; });
-    this.go('practice', { moveDot: false, pantryOpen: true, rowsOpen: {} });
+    const st0 = this.state.store;
+    if (kind === 'set' && !this.isOpen(st0, topic)) return;
+    const mixed = kind === 'set' ? null : this.mixedItems(kind === 'long' ? 6 : kind === 'one' ? 1 : 3);
+    if (mixed && !mixed.length) return;
+    this.put(st => {
+      if (kind === 'set') {
+        st.opened[topic] = true;
+        const set = st.prog.sets[topic];
+        // A finished tool always gets a brand-new set; one in progress picks up where it was.
+        if (!set || set.qs.every(x => x.done)) st.prog.sets[topic] = { qs: this.makeSet(topic), gen: ((set && set.gen) || 0) + 1 };
+        const qs = st.prog.sets[topic].qs, i = Math.max(0, qs.findIndex(x => !x.done));
+        st.session = { kind, topic, i, step: qs[i].text ? 2 : 1, picked: qs[i].picked || [], text: qs[i].text || '', result: null, log: [], started: Date.now() };
+      } else st.session = { kind, items: mixed, i: 0, step: 1, picked: [], text: '', result: null, log: [], started: Date.now() };
+      return st;
+    });
+    this.go('practice', { moveDot: false, pantryOpen: true, rowsOpen: {}, reveal: false });
   }
-  suggestion(S) {
+  suggestion(S, st) {
     let best = null;
-    window.SIG.TOPICS.forEach(t => Object.entries(S.T[t.id].conf).forEach(([w, c]) => { if (!best || c > best.c) best = { m: t.id, w, c }; }));
+    this.doneTools(st).forEach(t => Object.entries(S.T[t.id].conf).forEach(([w, c]) => { if (!best || c > best.c) best = { m: t.id, w, c }; }));
     const times = c => (c === 1 ? 'once' : c === 2 ? 'twice' : c + ' times');
-    if (best) return { tool: best.m, title: `Today, let’s revisit ${this.say(best.m)}.`, sub: `You mixed it up with ${this.say(best.w)} ${times(best.c)}. One short sitting is plenty.` };
-    const t = this.nextTopic(S);
-    return { tool: t.id, title: `Today, a gentle look at ${t.say}.`, sub: 'It’s the next card in your program. Take it slowly.' };
+    if (best) return { tool: best.m, revisit: true, title: `Today, let’s revisit ${this.say(best.m)}.`, sub: `You mixed it up with ${this.say(best.w)} ${times(best.c)}. One short sitting is plenty.` };
+    const t = this.current(st) || window.SIG.TOPICS[0];
+    return { tool: t.id, revisit: false, title: `Today, a gentle look at ${t.say}.`, sub: 'It’s the next card in your program. Take it slowly.' };
   }
 
   check(skip) {
-    const s = this.state.store.session, q = this.req(s.queue[s.i]);
-    const g = this.grade(q, s.picked, s.text || '', skip);
-    const lead = q.need[0];
-    const before = this.stats(this.state.store.attempts).T[lead].m;
-    const a = { qid: q.id, picked: s.picked.slice(), toolsOk: g.toolsOk, queryOk: g.queryOk, failed: g.failed, pantry: g.pantry, text: g.skipped ? '' : s.text, ts: Date.now() };
-    const after = this.stats(this.state.store.attempts.concat([a])).T[lead].m;
+    const st0 = this.state.store, s = st0.session, it = this.curItem(st0), Q = this.qOf(it.cur);
+    const text = s.text || '';
+    const g = this.gradeQ(Q, s.picked, text, skip);
     const notes = window.SIG.NOTES_RIGHT;
+    if (g.skipped) {
+      this.put(st => { st.session.step = 3; st.session.result = Object.assign({}, g, { praise: notes[Math.floor(Math.random() * notes.length)] }); return st; });
+      this.top(); return;
+    }
+    const lead = Q.need[0], good = g.status === 'right';
+    const newH = g.status === 'wrong' ? Math.min(4, it.h + 1) : it.h;
+    const a = { qid: Q.key, tool: Q.tool, need: Q.need, ok: Q.ok, picked: s.picked.slice(), toolsOk: g.toolsOk, status: g.status, key: g.key || null, pat: g.pat || null, h: it.h, text, ts: Date.now() };
+    const before = this.stats(st0.attempts).T[lead].m, after = this.stats(st0.attempts.concat([a])).T[lead].m;
+    let completed = false, firstTime = false;
     this.put(st => {
-      st.attempts.push(a); st.opened[q.topic] = true;
+      st.attempts.push(a); st.opened[Q.tool] = true;
+      const x = this.curItem(st);
+      x.h = newH; x.hmax = Math.max(x.hmax, newH); x.tries++; x.text = text; x.picked = s.picked.slice();
+      if (good) {
+        x.done = true;
+        const hh = (st.prog.hints[Q.tool] = st.prog.hints[Q.tool] || { sum: 0, n: 0 }); hh.sum += x.hmax; hh.n++;
+        if (st.session.kind === 'set' && this.items(st).every(y => y.done)) { completed = true; firstTime = !st.prog.done[st.session.topic]; st.prog.done[st.session.topic] = st.prog.done[st.session.topic] || Date.now(); }
+      }
       st.session.step = 3;
-      st.session.result = { ...g, before, after, note: notes[Math.floor(Math.random() * notes.length)] };
-      st.session.log.push({ qid: q.id, ok: g.toolsOk && g.queryOk !== false });
+      st.session.result = Object.assign({}, g, { before, after, h: newH, completed, firstTime, praise: notes[Math.floor(Math.random() * notes.length)] });
+      st.session.log.push({ qid: Q.key, ok: good });
       return st;
     });
     this.setState({ moveDot: false, pantryOpen: false });
     clearTimeout(this._d); this._d = setTimeout(() => this.setState({ moveDot: true }), 450);
-    const el = this.scrollRef.current; if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+    this.top();
+  }
+  advance() {
+    this.put(x => {
+      const ss = x.session, items = this.items(x);
+      const res = ss.result || {};
+      if (ss.kind === 'set') {
+        if (res.completed || items.every(y => y.done)) { ss.done = true; ss.complete = true; ss.firstTime = !!res.firstTime; return x; }
+        let j = items.findIndex((y, k) => !y.done && k > ss.i); if (j < 0) j = items.findIndex(y => !y.done);
+        ss.i = j;
+      } else {
+        if (ss.i + 1 >= items.length) { ss.done = true; return x; }
+        ss.i++;
+      }
+      const it = items[ss.i];
+      ss.step = it.text ? 2 : 1; ss.picked = it.picked || []; ss.text = it.text || ''; ss.result = null;
+      return x;
+    });
+    this.setState({ moveDot: false, pantryOpen: true, rowsOpen: {}, reveal: false });
+    clearTimeout(this._r); this._r = setTimeout(() => this.setState({ reveal: true }), 900);
+    const el = this.scrollRef.current; if (el) el.scrollTop = 0;
+  }
+  // After the full walkthrough: a new question like it, to solve alone.
+  likeIt() {
+    this.put(x => {
+      const it = this.curItem(x);
+      if (it.cur && !it.cur.legacy) it.cur = window.SIG.GEN.sibling(it.ref);
+      it.sib = true; it.h = 0; it.text = ''; it.picked = [];
+      x.session.step = 1; x.session.text = ''; x.session.picked = []; x.session.result = null;
+      return x;
+    });
+    this.setState({ pantryOpen: true, rowsOpen: {} });
+    const el = this.scrollRef.current; if (el) el.scrollTop = 0;
+  }
+  // "I'm stuck": peel back the next layer without counting a try.
+  stuck() {
+    this.put(x => {
+      const it = this.curItem(x); it.h = Math.min(4, it.h + 1); it.hmax = Math.max(it.hmax, it.h);
+      x.session.step = 3; x.session.result = Object.assign({}, x.session.result || {}, { status: 'hint', h: it.h, toolsOk: true });
+      return x;
+    });
+    this.top();
   }
   insert(txt) {
     const ta = this.taRef.current, cur = (this.state.store.session && this.state.store.session.text) || '';
@@ -1018,6 +1253,25 @@ class Component extends DCLogic {
     return out;
   }
 
+  // The hint layers unlocked so far for a question (1 nudge, 2 tool, 3 shape).
+  layers(q, h) {
+    const out = [], E = window.SIG.Engine, NUDGE = window.SIG.GEN.NUDGE, lead = this.tool(q.need[0]);
+    const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+    const blank = { isNudge: false, isTool: false, isShape: false, chips: [], tables: [], hasTables: false, segs: [] };
+    if (h >= 1) { const clue = q.clues[0]; out.push(Object.assign({}, blank, { n: '1', title: 'A NUDGE', isNudge: true, text: q.nudge || (clue ? `Look at the words “${clue}.” ${NUDGE[q.need[0]] || ''}` : (NUDGE[q.need[0]] || lead.plain)) })); }
+    if (h >= 2) {
+      let cols = {}; try { cols = q.legacy ? {} : E.columnsIn(q.sol); } catch (e) {}
+      const tables = (q.tables || []).map(n => ({ name: n, cols: (cols[n] || []).join(', ') || 'peek in the Pantry for its columns' }));
+      out.push(Object.assign({}, blank, { n: '2', title: 'THE TOOL', isTool: true, text: `This one needs ${list(q.need.map(id => this.nm(id)))}. These are the shelves to pour from:`, chips: q.need.map(id => this.nm(id)), tables, hasTables: tables.length > 0 }));
+    }
+    if (h >= 3) out.push(Object.assign({}, blank, { n: '3', title: 'THE SHAPE', isShape: true, text: 'Here’s the outline. Fill in the blanks.', segs: q.skeleton.split(/(___)/).filter(t => t !== '').map(t => ({ t, blank: t === '___', plain: t !== '___' })) }));
+    return out;
+  }
+  describeUsed(used) {
+    const names = (used || []).map(id => this.nm(id));
+    return names.length ? `uses ${names.slice(0, 3).join(', ')}` : 'reads straight from the table';
+  }
+
   renderVals() {
     const D = window.SIG, s = this.state;
     const goHome = () => this.go('home'), goPractice = () => this.go('practice'), goMenu = () => this.go('menu'), goPantry = () => this.go('pantry'), goProgress = () => this.go('progress'), goLessons = () => this.go('lessons', { lesson: null });
@@ -1027,52 +1281,70 @@ class Component extends DCLogic {
     const posOf = m => (4 + Math.max(0, Math.min(1, m)) * 92).toFixed(1) + '%';
     const lvl = v => posOf((v - 1) / 4);
     const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+    const cur = this.current(st);
+    const setLen = id => (this.generated(id) ? 5 : D.REQUESTS.filter(q => q.topic === id).length);
+    const leftIn = id => { const set = st.prog.sets[id]; return set && !set.qs.every(x => x.done) ? set.qs.filter(x => !x.done).length : null; };
 
     // home
     const hr = new Date().getHours();
-    const sug = this.suggestion(S), sugT = this.tool(sug.tool);
-    const sess = st.session;
-    const sessQ = sess && !sess.done ? this.req(sess.queue[sess.i]) : null;
+    const sug = this.suggestion(S, st), sugT = this.tool(sug.tool);
+    const sess = st.session, items = this.items(st);
+    const it = sess && !sess.done ? this.curItem(st) : null;
+    const sessQ = it ? this.qOf(it.cur) : null;
     const stepWord = sess ? (sess.step === 1 ? 'choosing tools' : sess.step === 2 ? 'writing the query' : 'reading feedback') : '';
-    const nextT = this.nextTopic(S);
+    const sugLeft = leftIn(sug.tool);
     const home = {
       greeting: hr < 12 ? 'Good morning.' : hr < 18 ? 'Good afternoon.' : 'Good evening.',
       sugTitle: sug.title, sugSub: sug.sub, sugTool: sugT.say, sugCat: sugT.cat, sugDay: this.phaseDay(sugT),
-      startFocus: () => this.start('focus', sug.tool),
-      hasResume: !!sessQ, resumeReq: sessQ ? sessQ.request : '',
-      resumeWhere: sess ? `Request ${sess.i + 1} of ${sess.queue.length} · ${stepWord}` : '',
+      sugBtn: sug.revisit ? `Revisit ${sugT.say} · ${setLen(sug.tool)} requests` : sugLeft !== null ? `Continue ${sugT.say} · ${sugLeft} left` : `Begin ${sugT.say} · ${setLen(sug.tool)} requests`,
+      startFocus: () => this.start('set', sug.tool),
+      hasResume: !!sessQ, resumeReq: sessQ ? sessQ.ask : '',
+      resumeWhere: sess ? `Request ${sess.i + 1} of ${items.length} · ${stepWord}` : '',
       year: new Date().getFullYear()
     };
-    const sittings = [
-      { title: 'Continue the program', note: `Day ${nextT.day} · ${nextT.name}`, sub: '4 requests', onClick: () => this.start('focus', nextT.id) },
-      { title: 'A quick mixed review', note: 'From everything you’ve opened, weakest first', sub: '3 · ~4 min', onClick: () => this.start('mixed') },
-      { title: 'A longer mixed review', note: 'More turns, same gentle weighting', sub: '6 · ~12 min', onClick: () => this.start('long') },
-      { title: 'Just one request', note: 'For a spare minute', sub: '1 · ~2 min', onClick: () => this.start('one') }
-    ];
+    const anyDone = this.doneTools(st).length > 0;
+    const curLeft = cur ? leftIn(cur.id) : null;
+    const sittings = [cur ? { title: 'Continue the program', note: `Day ${cur.day} · ${cur.name}`, sub: curLeft !== null ? `${curLeft} of ${setLen(cur.id)} left` : `${setLen(cur.id)} requests`, onClick: () => this.start('set', cur.id), op: 1 }
+      : { title: 'Every card is yours', note: 'The whole program is complete. Mixed reviews keep it fresh.', sub: '', onClick: () => {}, op: 1 }]
+      .concat(anyDone ? [
+        { title: 'A quick mixed review', note: 'From the cards you’ve finished, hints first', sub: '3 · ~4 min', onClick: () => this.start('mixed'), op: 1 },
+        { title: 'A longer mixed review', note: 'More turns, same gentle weighting', sub: '6 · ~12 min', onClick: () => this.start('long'), op: 1 },
+        { title: 'Just one request', note: 'For a spare minute', sub: '1 · ~2 min', onClick: () => this.start('one'), op: 1 }]
+        : [{ title: 'Mixed reviews', note: 'They open once you finish your first card.', sub: '', onClick: () => {}, op: 0.45 }]);
 
     // practice
-    const p = { none: !sess, isEnd: !!(sess && sess.done), active: !!sessQ };
+    const p = { none: !sess, isEnd: !!(sess && sess.done && !sess.complete), isComplete: !!(sess && sess.complete), active: !!sessQ, done: {} };
     let r = {}, pan = { open: false };
-    if (sess && sess.done) { const ok = sess.log.filter(l => l.ok).length; p.endLine = `${sess.log.length} request${sess.log.length === 1 ? '' : 's'} · ${ok} poured right`; }
+    if (p.isEnd) { const ok = sess.log.filter(l => l.ok).length; p.endLine = `${sess.log.length} ${sess.log.length === 1 ? 'try' : 'tries'} · ${ok} poured right`; }
+    if (p.isComplete) {
+      const t = this.tool(sess.topic), nx = D.TOPICS[t.idx + 1], hs = items.reduce((a, x) => a + (x.hmax || 0), 0);
+      const notes = ['That one’s yours now.', 'Beautifully earned.', 'Signed, sealed, yours.', 'A lovely piece of work.'];
+      const hasNext = !!(nx && sess.firstTime);
+      p.done = { name: t.name, note: notes[hash(t.id) % notes.length], line: `${items.length} requests · ${hs} ${hs === 1 ? 'hint' : 'hints'} along the way`,
+        hasNext, noNext: !hasNext, nextName: nx ? nx.name : '', nextPlain: nx ? nx.plain : '', nextIngr: nx ? nx.ingr.slice(0, 3) : [], nextCat: nx ? nx.cat : '', nextDay: nx ? this.phaseDay(nx) : '',
+        hasPhase: !!(hasNext && nx.ph !== t.ph), phaseNote: nx && nx.ph !== t.ph ? `Phase ${t.ph} is complete. Phase ${nx.ph}, ${D.PHASES[nx.ph - 1].name}, begins.` : '',
+        lockOp: s.reveal ? 0 : 1, cardOp: s.reveal ? 1 : 0.42, beginLabel: nx ? `Begin ${nx.say} · ${setLen(nx.id)} requests` : '', begin: () => nx && this.start('set', nx.id) };
+    }
     if (sessQ) {
-      const q = sessQ, step = sess.step, topic = this.tool(q.topic);
-      p.count = `${sess.i + 1} / ${sess.queue.length}`;
-      p.segs = sess.queue.map((_, i) => ({ bg: i < sess.i ? '#b68235' : i === sess.i ? INK : '#c9bdae' }));
-      p.from = D.FROM[hash(q.id) % D.FROM.length].toUpperCase();
-      p.level = 'LEVEL ' + ROMAN[q.lv];
-      const showClue = step === 3 && !(sess.result && sess.result.toolsOk && sess.result.queryOk !== false);
+      const q = sessQ, step = sess.step, topic = this.tool(q.tool), res = sess.result;
+      p.count = `${sess.i + 1} / ${items.length}`;
+      p.segs = items.map((x, i) => ({ bg: x.done ? '#b68235' : i === sess.i ? INK : '#c9bdae' }));
+      p.from = D.FROM[hash(q.key) % D.FROM.length].toUpperCase();
+      p.level = sess.kind !== 'set' ? 'MIXED REVIEW' : it.sib ? 'ONE LIKE IT' : q.legacy ? 'LEVEL ' + ROMAN[q.slot] : `Q${q.slot} · ${SLOT[q.slot]}`;
+      const showClue = it.h >= 1 || (step === 3 && res && (res.status === 'wrong' || res.status === 'hint'));
       const segs = [];
       if (showClue && q.clues.length) {
         const re = new RegExp('(' + q.clues.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'g');
-        q.request.split(re).filter(Boolean).forEach(t => segs.push({ t, clue: q.clues.includes(t), plain: !q.clues.includes(t) }));
-      } else segs.push({ t: q.request, clue: false, plain: true });
+        q.ask.split(re).filter(Boolean).forEach(t => segs.push({ t, clue: q.clues.includes(t), plain: !q.clues.includes(t) }));
+      } else segs.push({ t: q.ask, clue: false, plain: true });
       p.reqSegs = segs;
       p.step1 = step === 1; p.step2 = step === 2; p.step3 = step === 3; p.showPantry = step >= 2;
       p.st1 = step === 1 ? INK : MUTED; p.st2 = step === 2 ? INK : MUTED; p.st3 = step === 3 ? INK : MUTED;
-      let opts = [...new Set(q.need.concat(q.distract))];
-      const fill = D.TOPICS.filter(t => !opts.includes(t.id) && t.ph <= Math.max(topic.ph, 2)).sort((a, b) => hash(q.id + a.id) - hash(q.id + b.id));
+      const open = id => this.isOpen(st, id) || q.need.includes(id);
+      let opts = [...new Set(q.need.concat((q.distract || []).filter(open)))];
+      const fill = D.TOPICS.filter(t => !opts.includes(t.id) && open(t.id) && t.idx <= topic.idx + 0).sort((a, b) => Math.abs(a.idx - topic.idx) - Math.abs(b.idx - topic.idx) || hash(q.key + a.id) - hash(q.key + b.id));
       while (opts.length < 6 && fill.length) opts.push(fill.shift().id);
-      opts = opts.slice(0, 6).sort((a, b) => hash(q.id + ':' + a) - hash(q.id + ':' + b));
+      opts = opts.slice(0, 6).sort((a, b) => hash(q.key + ':' + a) - hash(q.key + ':' + b));
       p.options = opts.map(id => {
         const t = this.tool(id), sel = sess.picked.includes(id);
         return { name: t.name, ingr: t.ingr.slice(0, 2).map(x => x.trim()), cat: this.phaseDay(t), sel, border: sel ? '#b68235' : '#b2a493', bg: sel ? 'rgba(245,236,210,.7)' : 'transparent', ring: sel ? 'inset 0 0 0 1px #b68235' : 'none',
@@ -1081,36 +1353,59 @@ class Component extends DCLogic {
       p.cantNext = sess.picked.length === 0;
       p.pickedNames = sess.picked.map(id => this.nm(id));
       p.text = sess.text || '';
-      const tbs = q.tables.map(n => this.PM[n.toLowerCase()]).filter(Boolean);
-      const hasPantryNote = !!(sess.result && sess.result.pantry && sess.result.pantry.length);
+      const layers = this.layers(q, it.h);
+      p.hasHints = step === 2 && layers.length > 0; p.hints = layers;
+      const tbs = (q.tables || []).map(n => this.PM[n.toLowerCase()]).filter(Boolean);
+      const pantrySlip = !!(res && res.status === 'slip' && res.pantry);
       pan = { open: s.pantryOpen && tbs.length > 0, sign: s.pantryOpen ? 'fold away' : 'open', count: tbs.length ? `${tbs.length} ${tbs.length === 1 ? 'TABLE' : 'TABLES'} FOR THIS REQUEST` : 'NO TABLES NEEDED',
-        border: hasPantryNote && step === 3 ? OX : '#b2a493',
+        border: pantrySlip && step === 3 ? OX : '#b2a493',
         tables: tbs.map(t => this.tableView(t, step === 2, 'p:' + t.name)), rels: this.relsFor(tbs.map(t => t.name)) };
       pan.hasRels = pan.rels.length > 0;
       const stepsArr = q.steps.map((x, i) => ({ c: x.c, s: x.s, hasS: !!x.s, n: String(i + 1).padStart(2, '0') }));
-      if (step === 3 && sess.result) {
-        const g = sess.result, lead = this.tool(q.need[0]);
-        const isRight = g.toolsOk && g.queryOk !== false;
-        r = { isRight, isPartial: g.toolsOk && g.queryOk === false, isWrong: !g.toolsOk, steps: stepsArr,
-          hasPantry: !!(g.pantry && g.pantry.length), pantry: g.pantry || [],
-          note: g.note, lead: lead.name, leadCat: lead.cat + ' · ' + this.phaseDay(lead),
-          dot: posOf(s.moveDot ? g.after : g.before), masteryWord: `${Math.round(g.before * 100)} → ${Math.round(g.after * 100)}`,
-          rightLine: g.skipped ? `${list(g.best.map(id => this.nm(id)))} is exactly right for this request. Here’s how the query would pour.` : `${list(g.best.map(id => this.nm(id)))}, written cleanly. That’s exactly what this request asked for.`,
-          howTitle: isRight ? 'THE POUR, LINE BY LINE' : 'HOW TO POUR IT, STEP BY STEP',
-          hasYours: !g.skipped && !!(sess.text || '').trim() && !isRight, yours: sess.text,
-          nextLabel: sess.i + 1 < sess.queue.length ? 'Next request' : 'Finish the sitting' };
-        if (r.isPartial) {
-          const miss = g.failed.map(k => q.checks.find(c => c.k === k)).filter(Boolean).map(c => c.miss);
-          r.missing = miss;
-          r.partialLead = miss.length ? `${list(g.best.map(id => this.nm(id)))} was the right choice. Your query is missing ${miss.length === 1 ? 'one piece' : 'a couple of pieces'}:` : `${list(g.best.map(id => this.nm(id)))} was the right choice. The query just needs the Pantry’s real names, noted above.`;
+      if (step === 3 && res) {
+        const lead = this.tool(q.need[0]), status = res.status, h = it.h;
+        const more = items.some((y, k) => !y.done && k !== sess.i) || (sess.kind !== 'set' && sess.i + 1 < items.length);
+        const best = res.best || q.need;
+        r = { isRight: status === 'right', isSlip: status === 'slip', isTools: status === 'tools', isHint: (status === 'wrong' || status === 'hint') && h >= 1 && h <= 3, isWrong: (status === 'wrong' || status === 'hint') && h >= 4,
+          isPartial: false, hasPantry: false, pantry: [], steps: stepsArr,
+          note: res.praise || '', lead: lead.name, leadCat: lead.cat + ' · ' + this.phaseDay(lead),
+          dot: posOf(s.moveDot ? res.after : res.before), masteryWord: `${Math.round((res.before || 0) * 100)} → ${Math.round((res.after || 0) * 100)}`,
+          rightLine: `${list(best.map(id => this.nm(id)))}, written cleanly. That’s exactly what this request asked for.`,
+          hasToolNote: status === 'right' && !res.toolsOk, toolNote: `Your query works. You picked ${list(sess.picked.map(id => this.nm(id)))}, but this request was really about ${list(q.need.map(id => this.nm(id)))}. Worth noticing for next time.`,
+          hasDoneNote: !!res.completed, doneNote: 'That was the last one. This card is complete.',
+          howTitle: status === 'right' ? 'THE POUR, LINE BY LINE' : 'HOW TO POUR IT, STEP BY STEP',
+          hasYours: status !== 'right' && !!(sess.text || '').trim(), yours: sess.text,
+          primary: () => this.advance(), primaryLabel: res.completed ? 'See your card' : more ? 'Next request' : 'Finish the sitting' };
+        r.showSteps = r.isRight || r.isWrong;
+        r.hasYours = r.hasYours && r.isWrong;
+        if (r.isSlip) {
+          const text = sess.text || '', at = res.at;
+          r.slipTitle = res.pantry ? 'A NOTE FROM THE PANTRY' : 'A SMALL SLIP'; r.slipMsg = res.msg; r.slipPantry = !!res.pantry;
+          r.hasSlipAt = !!(at && at.end > at.start && text);
+          r.slipSegs = r.hasSlipAt ? [{ t: text.slice(0, at.start), hit: false, plain: true }, { t: text.slice(at.start, at.end), hit: true, plain: false }, { t: text.slice(at.end), hit: false, plain: true }].filter(x => x.t) : [];
+          r.primary = () => this.put(x => { x.session.step = 2; x.session.result = null; return x; }); r.primaryLabel = 'Fix it';
+        }
+        if (r.isHint) {
+          r.layerNo = String(h); r.layerList = layers.slice(-1);
+          r.what = status === 'hint' ? 'Here’s the next layer, as you asked.' : (res.why || res.note || 'The result doesn’t match what the request needs yet.');
+          r.hasExtra = !!(res.note && res.why && res.note !== res.why); r.extra = res.note || '';
+          r.primary = () => this.put(x => { x.session.step = 2; x.session.result = null; return x; }); r.primaryLabel = 'Try again';
+        }
+        if (r.isTools) {
+          const al = this.allowed(q, best);
+          const wp = sess.picked.filter(t => !al.has(t)), mt = best.filter(t => !sess.picked.includes(t));
+          r.toolsBorder = res.toolsOk ? '#c9a464' : '#b2a493'; r.toolsHead = res.toolsOk ? 'The right tools.' : 'Not quite the right mix.';
+          r.toolsMsg = res.toolsOk ? `${list(best.map(id => this.nm(id)))} is exactly what this request needs. Now write it, and it will count.` : wp.length ? `${this.nm(wp[0])} isn’t needed here. ${q.whyNot[wp[0]] || this.tool(wp[0]).notFor}` : `You’re on the right track, but something is missing. Look at the request again.`;
+          r.primary = () => this.put(x => { x.session.step = res.toolsOk ? 2 : 1; x.session.result = null; return x; }); r.primaryLabel = res.toolsOk ? 'Write it' : 'Choose again';
         }
         if (r.isWrong) {
-          const al = this.allowed(q, g.best);
-          const wp = sess.picked.filter(t => !al.has(t)), mt = g.best.filter(t => !sess.picked.includes(t));
+          const al = this.allowed(q, best);
+          const wp = sess.picked.filter(t => !al.has(t)), mt = best.filter(t => !sess.picked.includes(t));
           const picked = list(sess.picked.map(id => this.nm(id)));
-          r.did = wp.length ? `You chose ${picked}. ${this.tool(wp[0]).kind}` : `You chose ${picked}, which is part of the answer. You were on the right track.`;
-          r.why = wp.length ? (q.whyNot[wp[0]] || this.tool(wp[0]).notFor) : `On its own it can’t finish the job. You also need ${list(mt.map(id => this.nm(id)))}: ${this.tool(mt[0]).plain.charAt(0).toLowerCase() + this.tool(mt[0]).plain.slice(1)}`;
-          r.fits = g.best.map(id => this.nm(id)); r.clueWhy = q.clueWhy; r.analogy = lead.analogy;
+          r.did = !res.toolsOk && wp.length ? `You chose ${picked}. ${this.tool(wp[0]).kind}` : `You chose ${picked}${res.toolsOk ? ', which was the right call,' : ''} and wrote a query that ${this.describeUsed(res.used)}.`;
+          r.why = !res.toolsOk && wp.length ? (q.whyNot[wp[0]] || this.tool(wp[0]).notFor) : !res.toolsOk && mt.length ? `On its own it can’t finish the job. You also need ${list(mt.map(id => this.nm(id)))}: ${this.tool(mt[0]).plain.charAt(0).toLowerCase() + this.tool(mt[0]).plain.slice(1)}` : (res.why || res.note || 'The result didn’t match what the request needs yet.');
+          r.fits = q.need.map(id => this.nm(id)); r.clueWhy = q.why || (q.clues[0] ? `“${q.clues[0]}” is the clue. ${lead.plain}` : lead.plain); r.analogy = lead.analogy;
+          r.primary = () => this.likeIt(); r.primaryLabel = q.legacy ? 'Try it again' : 'Try a new one like it';
         }
       }
       if (s.path) {
@@ -1123,7 +1418,7 @@ class Component extends DCLogic {
           return { q: x[0], L: leftTaken ? T : O, R: leftTaken ? O : T, left: leftTaken, right: !leftTaken, delay: base + 's', ansDelay: base + 0.4 + 's', arrowDelay: base + 0.75 + 's', headDelay: base + 1.6 + 's' };
         });
         const endAt = 0.3 + lt.path.length * 1.6;
-        this._path = { open: true, request: q.request, steps, end: lt.end, note: lt.note, endDelay: endAt + 's', noteDelay: endAt + 0.6 + 's' };
+        this._path = { open: true, request: q.ask, steps, end: lt.end, note: lt.note, endDelay: endAt + 's', noteDelay: endAt + 0.6 + 's' };
       }
     }
     const path = s.path && this._path ? this._path : { open: false };
@@ -1132,16 +1427,20 @@ class Component extends DCLogic {
     const cats = ['ALL', 1, 2, 3, 4, 5, 6].map(c => ({ label: c === 'ALL' ? 'ALL' : 'PHASE ' + c, border: s.menuCat === c ? INK : '#c9bdae', color: s.menuCat === c ? INK : '#5e554c', onClick: () => this.setState({ menuCat: c, menuOpen: null }) }));
     const shown = D.TOPICS.filter(t => s.menuCat === 'ALL' || t.ph === s.menuCat);
     const menuCards = shown.map((t, j) => {
-      const open = s.menuOpen === t.id;
+      const open = s.menuOpen === t.id, locked = !this.isOpen(st, t.id), isNow = !!(cur && cur.id === t.id);
+      const ha = this.hintsAvg(st, t.id);
+      const left = leftIn(t.id);
       return { name: t.name, ingr: t.ingr, cat: t.cat, phaseDay: this.phaseDay(t), align: j % 2 ? 'flex-end' : 'flex-start', bg: open ? 'rgba(250,246,238,.45)' : 'transparent',
-        sliders: [{ label: 'Difficulty', pos: lvl(t.diff), color: TOMATO }, { label: 'Often used', pos: lvl(t.freq), color: TOMATO }, { label: 'My mastery', pos: posOf(S.T[t.id].m), color: OX }],
-        open, plain: t.plain, analogy: t.analogy,
+        sliders: [{ label: 'Difficulty', pos: lvl(t.diff), color: TOMATO }, { label: 'Often used', pos: lvl(t.freq), color: TOMATO }, { label: 'My mastery', pos: posOf(S.T[t.id].m), color: OX }, { label: 'Hints used', pos: posOf(ha === null ? 0 : ha / 4), color: ha === null ? '#c9bdae' : '#b68235' }],
+        open, plain: t.plain, analogy: t.analogy, locked, op: locked ? 0.45 : 1, canPractice: !locked, isNow, nowNote: left !== null ? `now pouring · ${left} of ${setLen(t.id)} left` : 'now pouring',
+        lockNote: cur ? `Steeping… finish ${cur.say} first.` : '',
+        practiceLabel: this.isDone(st, t.id) ? 'Practice again' : 'Practice this',
         onClick: () => this.setState({ menuOpen: open ? null : t.id }),
         lesson: e => { e.stopPropagation(); this.put(x => { x.opened[t.id] = true; return x; }); this.go('lessons', { lesson: t.id }); },
-        practice: e => { e.stopPropagation(); this.start('focus', t.id); } };
+        practice: e => { e.stopPropagation(); this.start('set', t.id); } };
     });
     const ph = s.menuCat === 'ALL' ? null : D.PHASES[s.menuCat - 1];
-    const menuPhase = ph ? `Phase ${ph.n} · ${ph.name} · ${ph.days}` : 'Every tool from your fifty-day program, in order.';
+    const menuPhase = ph ? `Phase ${ph.n} · ${ph.name} · ${ph.days}` : 'Every tool from your fifty-day program, in order. Each card opens when the one before it is finished.';
 
     // pantry screen
     let pantryAll = { rels: [], schemas: [] };
@@ -1158,9 +1457,10 @@ class Component extends DCLogic {
       const x = S.T[t.id];
       if (!x.tries) { groups.untried.push({ name: t.name, onClick: () => this.go('lessons', { lesson: t.id }) }); return; }
       const topConf = Object.entries(x.conf).sort((a, b) => b[1] - a[1])[0];
-      const card = { name: t.name, phaseDay: this.phaseDay(t), pos: posOf(x.m), stat: `${x.tries} ${x.tries === 1 ? 'pour' : 'pours'} · ${x.right} right`, hasMix: !!topConf, mix: topConf ? `often mixed with ${this.say(topConf[0])}` : '' };
+      const ha = this.hintsAvg(st, t.id);
+      const card = { name: t.name, phaseDay: this.phaseDay(t), pos: posOf(x.m), stat: `${x.tries} ${x.tries === 1 ? 'pour' : 'pours'} · ${x.right} right${ha !== null ? ` · ${ha.toFixed(1)} hints` : ''}`, hasMix: !!topConf, mix: topConf ? `often mixed with ${this.say(topConf[0])}` : '' };
       if (x.wrong >= 2 && x.m < 0.55) groups.still.push(card);
-      else if (x.m >= 0.62) groups.sig.push(card);
+      else if (x.m >= 0.62 || this.isDone(st, t.id) && (ha || 0) < 1) groups.sig.push(card);
       else groups.steep.push(card);
     });
     const sections = [
@@ -1172,27 +1472,35 @@ class Component extends DCLogic {
     const concepts = D.PHASES.map(phz => { const c = S.conc[phz.n] || { right: 0, total: 0 }; return { name: phz.name, ratio: `${c.right}/${c.total}`, pct: (c.total ? c.right / c.total * 100 : 0).toFixed(0) + '%', dot: c.total ? '#b68235' : '#c9bdae' }; });
     const ago = ts => { const dd = Math.floor((Date.now() - ts) / 86400000); return dd <= 0 ? 'today' : dd === 1 ? 'yesterday' : dd + ' days ago'; };
     const recent = st.attempts.slice(-6).reverse().map(a => {
-      const q = this.req(a.qid), ok = a.toolsOk && a.queryOk !== false;
-      return { when: ago(a.ts), tools: a.picked.map(id => this.nm(id)).join(' + '), request: q ? q.request : '', verdict: ok ? 'poured right' : a.toolsOk ? 'nearly' : 'mixed up', color: ok ? '#7d5411' : a.toolsOk ? '#5e554c' : OX };
+      if (a.legacy) { const q = this.req(a.qid), ok = a.toolsOk && a.queryOk !== false; return { when: ago(a.ts), tools: a.picked.map(id => this.nm(id)).join(' + '), request: q ? q.request : '', verdict: ok ? 'poured right' : a.toolsOk ? 'nearly' : 'mixed up', color: ok ? '#7d5411' : a.toolsOk ? '#5e554c' : OX }; }
+      const q = this.qOf(a.qid.startsWith('L:') ? { legacy: a.qid.slice(2) } : this.QM[a.qid] ? { legacy: a.qid } : { t: a.qid.split(':')[0], s: +a.qid.split(':')[1] });
+      const v = a.status === 'right' ? ['poured right', '#7d5411'] : a.status === 'slip' ? ['a small slip', '#5e554c'] : ['not yet', OX];
+      return { when: ago(a.ts), tools: a.picked.map(id => this.nm(id)).join(' + '), request: q ? q.ask : '', verdict: v[0], color: v[1] };
     });
-    const tried = D.TOPICS.filter(t => S.T[t.id].tries).length;
+    const tried = D.TOPICS.filter(t => S.T[t.id].tries).length, doneN = this.doneTools(st).length;
     const prog = { sections, patterns, noPatterns: patterns.length === 0, concepts, recent,
-      totals: st.attempts.length ? `${st.attempts.length} attempts · ${tried} of ${D.TOPICS.length} cards poured · no streaks, ever` : 'No attempts yet · no streaks, ever',
+      totals: st.attempts.length ? `${st.attempts.length} attempts · ${doneN} of ${D.TOPICS.length} cards complete · no streaks, ever` : 'No attempts yet · no streaks, ever',
       askReset: !s.confirmReset, confirming: s.confirmReset,
       askRestore: !s.restore, restoring: !!s.restore, hasBackupMsg: !!s.backupMsg, backupMsg: s.backupMsg,
       restoreQ: s.restore ? `Replace your progress with this backup (${s.restore.attempts.length} ${s.restore.attempts.length === 1 ? 'attempt' : 'attempts'})?` : '' };
 
     // lessons
-    const statusOf = t => { const x = S.T[t.id]; if (x.tries && x.m >= 0.62) return ['signature', '#7d5411']; if (x.tries) return ['steeping', '#5e554c']; if (st.opened[t.id]) return ['opened', '#5e554c']; return ['', '#5e554c']; };
+    const statusOf = t => { if (this.isDone(st, t.id)) return ['complete', '#7d5411']; if (cur && cur.id === t.id) return ['now', INK]; if (!this.isOpen(st, t.id)) return ['locked', '#9b8f81']; return ['', '#5e554c']; };
     const openLesson = id => { this.put(x => { x.opened[id] = true; return x; }); this.setState({ lesson: id }); const el = this.scrollRef.current; if (el) el.scrollTop = 0; };
     const les = { list: !s.lesson, has: !!s.lesson };
     les.phases = D.PHASES.map(phz => ({ title: `PHASE ${phz.n} · ${phz.name.toUpperCase()}`, days: phz.days.toUpperCase(),
-      items: D.TOPICS.filter(t => t.ph === phz.n).map(t => { const [stt, sc] = statusOf(t); return { day: 'DAY ' + t.day, name: t.name, plain: t.plain, status: stt, stColor: sc, onClick: () => openLesson(t.id) }; }) }));
+      items: D.TOPICS.filter(t => t.ph === phz.n).map(t => { const [stt, sc] = statusOf(t); return { day: 'DAY ' + t.day, name: t.name, plain: t.plain, status: stt, stColor: sc, op: this.isOpen(st, t.id) ? 1 : 0.5, onClick: () => openLesson(t.id) }; }) }));
     if (s.lesson) {
-      const t = this.tool(s.lesson), i = t.idx, prev = D.TOPICS[i - 1], next = D.TOPICS[i + 1];
-      Object.assign(les, { name: t.name, kicker: `${this.phaseDay(t)} · ${t.cat}`, lesson: t.lesson, analogy: t.analogy, signals: t.signals, ingr: t.ingr,
-        reqs: D.REQUESTS.filter(q => q.topic === t.id).sort((a, b) => a.lv - b.lv).map(q => ({ lv: 'LEVEL ' + ROMAN[q.lv], t: q.request })),
-        practice: () => this.start('focus', t.id),
+      const t = this.tool(s.lesson), i = t.idx, prev = D.TOPICS[i - 1], next = D.TOPICS[i + 1], locked = !this.isOpen(st, t.id);
+      const set = st.prog.sets[t.id];
+      const reqs = !this.generated(t.id) ? D.REQUESTS.filter(q => q.topic === t.id).sort((a, b) => a.lv - b.lv).map(q => ({ lv: 'LEVEL ' + ROMAN[q.lv], t: `“${q.request}”` }))
+        : set ? set.qs.map((x, k) => { const q = this.qOf(x.cur); return { lv: `Q${k + 1}${x.done ? ' ✓' : ''}`, t: q ? `“${q.ask}”` : '' }; })
+        : [{ lv: 'Q1–2', t: 'The new tool on its own, in its simplest form.' }, { lv: 'Q3–4', t: 'The new tool blended with cards you’ve already finished.' }, { lv: 'Q5', t: 'A small real-world challenge.' }];
+      Object.assign(les, { name: t.name, kicker: `${this.phaseDay(t)} · ${t.cat}`, lesson: t.lesson, analogy: t.analogy, signals: t.signals, ingr: t.ingr, reqs,
+        reqTitle: this.generated(t.id) ? (set ? 'YOUR CURRENT SET · FIVE POURS' : 'FIVE POURS · NEW EACH TIME') : 'PRACTICE REQUESTS · THREE LEVELS',
+        canPractice: !locked, locked, lockNote: cur ? `Steeping… finish ${cur.say} first. You can read the lesson now; its questions open when you get here.` : '',
+        practiceLabel: `${this.isDone(st, t.id) ? 'Practice' : 'Begin'} ${t.name} · ${setLen(t.id)} requests`,
+        practice: () => this.start('set', t.id),
         prev: () => prev && openLesson(prev.id), next: () => next && openLesson(next.id),
         noPrev: !prev, noNext: !next, prevOp: prev ? 1 : 0, nextOp: next ? 1 : 0,
         prevName: prev ? `Day ${prev.day} · ${prev.name}` : '', nextName: next ? `Day ${next.day} · ${next.name}` : '' });
@@ -1204,21 +1512,17 @@ class Component extends DCLogic {
       goHome, goPractice, goMenu, goPantry, goProgress, goLessons,
       resume: () => this.go('practice', { pantryOpen: true }),
       endSession: () => { this.put(x => { x.session = null; return x; }); this.go('home'); },
-      oneMore: () => this.start('one'),
+      oneMore: () => (anyDone ? this.start('one') : cur && this.start('set', cur.id)),
       toWrite: () => { this.put(x => { x.session.step = 2; return x; }); this.setState({ pantryOpen: true }); },
       toChoose: () => this.put(x => { x.session.step = 1; return x; }),
-      onText: e => { const v = e.target.value; this.put(x => { x.session.text = v; return x; }); },
+      onText: e => { const v = e.target.value; this.put(x => { x.session.text = v; const y = this.curItem(x); if (y) y.text = v; return x; }); },
       togglePantry: () => this.setState({ pantryOpen: !s.pantryOpen }),
-      peekPantry: () => { this.setState({ pantryOpen: true }); const el = this.scrollRef.current; if (el) el.scrollTo({ top: 0, behavior: 'smooth' }); },
-      taste: () => this.check(false), skipWrite: () => this.check(true),
-      nextReq: () => {
-        this.put(x => { const ss = x.session; if (ss.i + 1 >= ss.queue.length) ss.done = true; else { ss.i++; ss.step = 1; ss.picked = []; ss.text = ''; ss.result = null; } return x; });
-        this.setState({ moveDot: false, pantryOpen: true, rowsOpen: {} }); const el = this.scrollRef.current; if (el) el.scrollTop = 0;
-      },
+      peekPantry: () => { this.put(x => { x.session.step = 2; x.session.result = null; return x; }); this.setState({ pantryOpen: true }); this.top(); },
+      taste: () => this.check(false), skipWrite: () => this.check(true), stuck: () => this.stuck(),
       openPath: () => this.setState({ path: true }), closePath: () => this.setState({ path: false }),
       closeLesson: () => this.setState({ lesson: null }),
       askReset: () => this.setState({ confirmReset: true }), cancelReset: () => this.setState({ confirmReset: false }),
-      doReset: () => { this.put(x => { x.attempts = []; x.session = null; x.opened = {}; return x; }); this.setState({ confirmReset: false }); },
+      doReset: () => { this.put(x => { x.attempts = []; x.session = null; x.opened = {}; x.prog = { done: {}, sets: {}, hints: {} }; return x; }); this.setState({ confirmReset: false }); },
       saveBackup: () => { window.SigStore.backup(st).then(r => { if (r === 'saved') this.flash('Backup saved. Keep it somewhere safe.'); }); },
       pickBackup: () => { const f = this.fileRef.current; if (f) f.click(); },
       onBackupFile: e => {
@@ -1227,7 +1531,7 @@ class Component extends DCLogic {
         window.SigStore.readBackup(file).then(b => { if (b) this.setState({ restore: b, backupMsg: '' }); else this.flash('That file isn’t a Signature backup.'); });
       },
       cancelRestore: () => this.setState({ restore: null }),
-      doRestore: () => { const b = s.restore; b.opened = b.opened || {}; this.persist(b); this.setState({ store: b, restore: null }); this.flash('Restored. Welcome back.'); }
+      doRestore: () => { const b = this.migrate(s.restore); this.persist(b); this.setState({ store: b, restore: null }); this.flash('Restored. Welcome back.'); }
     };
   }
 }

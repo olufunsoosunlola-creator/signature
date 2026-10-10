@@ -42,7 +42,7 @@
   }
   function lsGet() { try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { return null; } }
 
-  function valid(st) { return !!(st && st.v === 2 && Array.isArray(st.attempts)); }
+  function valid(st) { return !!(st && (st.v === 2 || st.v === 3) && Array.isArray(st.attempts)); }
 
   // The newest valid copy wins; on a tie, the one with more attempts.
   function load() {

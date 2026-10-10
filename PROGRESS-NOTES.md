@@ -1,28 +1,20 @@
-# Work in progress: locked progression + generated practice
+# Signature: how the practice system works
 
-Started from the request to add generated questions, locked progression, layered hints,
-flexible answer checking and richer progress. **Not yet live in the app.** These files are
-in place but `app/index.html` doesn't load them yet.
+## Files (in `app/`)
+- `signature-db.js`: the practice copy of CelestiaRetailLab (Pantry rows + generated rows). "Today" is 2025-06-30.
+- `signature-engine.js`: runs T-SQL on a fresh copy of the data (SQLite via `vendor/sql-wasm.*`),
+  compares results with the reference answer, points at slips, and writes the explanations and outlines for hints.
+- `signature-gen.js`: the question generator (sets, a new question like this one, mixed review, validation).
+- `signature-q1.js` (Phases 1–2), `signature-q2.js` (Phases 3–4): five template slots per tool.
+- `index.html`: the app. It handles locked progression, the four hint layers, slips, completion and unlock, the hints slider, and resuming.
 
-## Done (and tested)
-- `app/signature-db.js`: practice copy of CelestiaRetailLab (Pantry rows + generated rows;
-  350 orders, 736 items, 20,000 LargeSales rows). "Today" is fixed at 2025-06-30.
-- `app/signature-engine.js`: runs T-SQL on a fresh copy of the data (SQLite via
-  `app/vendor/sql-wasm.*`) and compares the results:
-  - Translates TOP, schema names, #temp, GETDATE/DATEADD/DATEDIFF, + for text, CAST/CONVERT,
-    variables, procedures, triggers, indexes, partitions, UPDATE/DELETE with JOIN.
-  - Accepts any equivalent query (JOIN vs subquery vs EXISTS, aliases, column order).
-  - Points at slips: misspelled keyword/column/value, missing comma, missing schema,
-    ambiguous column, nickname used in WHERE/HAVING, extra columns, wrong sort order.
-  - Builds line-by-line explanations and fill-in-the-blank skeletons from any answer.
-  - 126 of 132 old answers run (the other 6 need objects made by earlier questions).
-  - 44 of 45 grading test cases behave as intended.
+## Scope decisions
+- Generated questions cover Phases 1–4 (Days 1–33). Phases 5–6 use their fixed requests (3 each),
+  checked by key parts. After the walkthrough there, the same request is tried again.
+- Saved data is version 3. Older saves keep their history; progression starts at Day 1.
 
-## Still to do
-1. `app/signature-gen.js`: question templates, 5 per tool (Q1–2 new tool alone,
-   Q3–4 combined with earlier tools, Q5 challenge), fresh parameters each time.
-2. UI in `app/index.html`: locked tools (faded cards, gold padlock, handwritten note),
-   layered hints (nudge → tool → shape → walkthrough + new similar question), slip card,
-   completion celebration with unlock reveal, hints slider on menu cards, reopening on the
-   exact question, saved-data upgrade from v2.
-3. Add the new files to `app/sw.js`, test on an emulated iPhone, then merge to main.
+## Checking changes
+Run the template checker and browser tests from a Claude session. When adding files, list them in `app/sw.js`.
+
+## Ideas for later
+Run button to preview results, spaced review, SQL keyboard shortcuts, generated questions for Phases 5–6.

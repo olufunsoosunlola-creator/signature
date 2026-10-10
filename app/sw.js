@@ -39,11 +39,18 @@ const FILES = [
   'index.html',
   'manifest.webmanifest',
   'signature-data.js',
+  'signature-db.js',
+  'signature-engine.js',
+  'signature-gen.js',
+  'signature-q1.js',
+  'signature-q2.js',
   'signature-requests.js',
   'storage.js',
   'support.js',
   'vendor/react-dom.production.min.js',
   'vendor/react.production.min.js',
+  'vendor/sql-wasm.js',
+  'vendor/sql-wasm.wasm',
 ];
 
 self.addEventListener('install', event => {

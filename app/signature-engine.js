@@ -630,6 +630,7 @@
       if (isOp(prev, '.')) continue;
       if (!STARTERS.has(u)) continue;
       if (u === 'IF' && prev && prev.t === 'id' && /^(TABLE|VIEW|INDEX|PROC|PROCEDURE|SCHEMA|TRIGGER|FUNCTION|COLUMN|CONSTRAINT)$/.test(prev.u || '')) continue;
+      if (first === 'ALTER' && (u === 'DROP' || u === 'ALTER') && !isKw(toks[i + 1], 'VIEW') && !isKw(toks[i + 1], 'PROC') && !isKw(toks[i + 1], 'PROCEDURE')) continue;
       if (u === 'SET' && first === 'UPDATE' && !sawSet) { sawSet = true; continue; }
       if (u === 'WITH' && (isOp(toks[j + 1], '(') || isKw(toks[j + 1], 'TIES') || isKw(toks[j + 1], 'CHECK') || isKw(toks[j + 1], 'SCHEMABINDING') || first === 'CREATE' || first === 'ALTER')) continue;
       if (u === 'SELECT') {
@@ -1047,6 +1048,7 @@
 
   // Static checks on how SQL Server would read the query (things SQLite lets slide).
   const AGG = new Set(['COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'STRING_AGG', 'COUNT_BIG', 'STDEV', 'VAR', 'STDEVP', 'VARP']);
+  function topLevel(ex) { const out = []; for (let i = 0; i < ex.length; i++) { if (isOp(ex[i], '(') && isKw(ex[i + 1], 'SELECT')) { i = match(ex, i); out.push(raw('0')); continue; } out.push(ex[i]); } return out; }
   function lint(src, env) {
     const notes = [];
     let toks; try { toks = resolveNames(tokenize(src), { schemas: env ? env.schemas : new Set(BASE_SCHEMAS.concat(['dbo'])) }); } catch (e) { return notes; }
@@ -1068,13 +1070,13 @@
         }
       });
       // a plain column next to totals, but not grouped
-      const hasAgg = items.some(it => it.expr.some((t, i) => t.t === 'id' && AGG.has(t.u) && isOp(it.expr[i + 1], '(') && !it.expr.some(x => isKw(x, 'OVER'))));
+      const hasAgg = items.some(it => { const ex = topLevel(it.expr); return ex.some((t, i) => t.t === 'id' && AGG.has(t.u) && isOp(ex[i + 1], '(') && !ex.some(x => isKw(x, 'OVER'))); });
       if (s.group !== undefined || hasAgg) {
         const gEnd = [s.having, s.order, s.end].filter(x => x !== undefined && x > (s.group || 0)).sort((a, b) => a - b)[0];
         const groups = s.group !== undefined ? splitTop(toks.slice(s.group + 2, gEnd)).map(g => emit(g).toLowerCase().replace(/\s+/g, '').replace(/^\w+\./, '')) : [];
         const gcols = new Set(s.group !== undefined ? toks.slice(s.group + 2, gEnd).filter(t => t.t === 'id').map(t => t.v.toLowerCase()) : []);
         items.forEach(it => {
-          const ex = it.expr; if (!ex.length) return;
+          const ex = topLevel(it.expr); if (!ex.length) return;
           if (ex.some((t, i) => t.t === 'id' && AGG.has(t.u) && isOp(ex[i + 1], '('))) return;
           if (ex.some(t => isKw(t, 'OVER'))) return;
           if (ex.length === 1 && (ex[0].t === 'num' || ex[0].t === 'str' || isOp(ex[0], '*') && s.group === undefined)) { if (isOp(ex[0], '*')) notes.push({ concept: 'not-grouped', msg: 'SELECT * can’t sit next to a total. Name the columns you’re grouping by instead.', at: { start: ex[0].p, end: ex[0].e } }); return; }
@@ -1117,10 +1119,15 @@
 
   // ───────────────────────── grading
   // spec: { sol, checks?: [...], after?: [...], order?: true|false }
+  const close = r => { try { r && r.env && r.env.db && r.env.db.close(); } catch (e) {} };
   function grade(user, spec) {
-    const ref = run(spec.sol, { after: spec.after, before: spec.before });
+    const out = { refRun: null, userRun: null };
+    try { return gradeInner(user, spec, out); } finally { close(out.refRun); close(out.userRun); }
+  }
+  function gradeInner(user, spec, out) {
+    const ref = out.refRun = run(spec.sol, { after: spec.after, before: spec.before });
     if (ref.error) return { status: 'error', msg: 'The reference answer didn’t run: ' + ref.error.message };
-    const u = run(user, { after: spec.after, before: spec.before });
+    const u = out.userRun = run(user, { after: spec.after, before: spec.before });
     const notes = lint(user, u.env);
     const hard = notes.filter(n => n.slip && !n.soft);
     if (u.error) {
@@ -1216,6 +1223,7 @@
       if (es && af && String(as.fn).toLowerCase() !== String(af.name).toLowerCase()) return { ok: false, kind: 'table', msg: `The scheme should be AS PARTITION ${af.name}.` };
       return { ok: true };
     }
+    if (c.kind === 'pattern') { const toks = tokenize(user); const hit = new RegExp(c.re, 'i').test(toks.filter(t => t.t !== 'str').map(t => t.v).join(' ')); return hit ? { ok: true } : { ok: false, kind: 'table', msg: c.msg }; }
     if (c.kind === 'option') { return ue.options[c.name] ? { ok: true } : { ok: false, kind: 'table', msg: c.msg || `Turn on ${c.name} first.` }; }
     if (c.kind === 'schemas') { const miss = c.names.filter(n => !ue.created.some(x => x.kind === 'schema' && x.name.toLowerCase() === n.toLowerCase())); return miss.length ? { ok: false, kind: 'table', msg: `The ${miss.join(' and ')} schema${miss.length > 1 ? 's are' : ' is'} still missing.` } : { ok: true }; }
     if (c.kind === 'sargable') { const bad = sargIssue(user); return bad ? Object.assign({ ok: false, kind: 'table' }, bad) : { ok: true }; }
@@ -1269,14 +1277,14 @@
     if (has('OVER')) {
       set.add('d17');
       if (['SUM', 'AVG', 'COUNT', 'MIN', 'MAX'].some(w => toks.some((t, i) => t.u === w && overAfter(toks, i)))) set.add('d18');
-      if (has('ROWS') || has('RANGE') || toks.some((t, i) => t.u === 'SUM' && overAfter(toks, i) && /ORDER\s+BY/i.test(src))) set.add('d19');
+      if (has('ROWS') || has('RANGE') || toks.some((t, i) => t.u === 'SUM' && overAfter(toks, i) && (() => { const o = match(toks, i + 1) + 2; const c = match(toks, o); return toks.slice(o, c).some(x => isKw(x, 'ORDER')); })())) set.add('d19');
       if (['ROW_NUMBER', 'RANK', 'DENSE_RANK'].some(fnCall)) set.add('d20');
       if (fnCall('NTILE')) set.add('d21');
       if (fnCall('LAG') || fnCall('LEAD')) set.add('d22');
       if (fnCall('FIRST_VALUE') || fnCall('LAST_VALUE')) set.add('d23');
     }
     if (toks.some((t, i) => isKw(t, 'SELECT') && isOp(toks[i - 1], '(') && !isKw(toks[i - 2], 'EXISTS') && !isKw(toks[i - 2], 'AS'))) set.add('d24');
-    if (has('EXISTS')) set.add('d25');
+    if (toks.some((t, i) => isKw(t, 'EXISTS') && !isKw(toks[i - 1], 'IF'))) set.add('d25');
     if (has('WITH') && toks.some((t, i) => isKw(t, 'AS') && isOp(toks[i + 1], '(') && isKw(toks[i + 2], 'SELECT'))) set.add('d26');
     if (/\b(CREATE|ALTER)\s+(OR\s+ALTER\s+)?VIEW\b/i.test(src)) set.add('d28');
     if (/\bINTO\s+#/i.test(src) || toks.some(t => t.t === 'tmp')) set.add('d30');
@@ -1449,5 +1457,5 @@
   }
 
   const ready = (window.initSqlJs ? init() : Promise.reject(new Error('sql.js missing'))).catch(e => { console.error(e); throw e; });
-  SIG.Engine = { ready, run, grade, lint, explain, explainLine, skeleton, tablesIn, columnsIn, detectTools, query, orderKeys, compareSets, tokenize, toDate, fmt, dateadd, datediff, META, TODAY, NOW };
+  SIG.Engine = { ready, run, close, grade, lint, explain, explainLine, skeleton, tablesIn, columnsIn, detectTools, query, orderKeys, compareSets, tokenize, toDate, fmt, dateadd, datediff, META, TODAY, NOW };
 })();
